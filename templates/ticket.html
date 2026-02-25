@@ -1,101 +1,151 @@
 {% extends 'base.html' %}
 {% block content %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/static/css/bootstrap.min.css" type="text/css">
-    <link rel="stylesheet" href="/static/css/style.css" type="text/css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" type="text/css">
-    <title>User Tickets</title>
-</head>
-<body>
-
 <div class="container">
-    <div class="row">
-        <div class="col-lg-12 pt-4 d-print-none">
-            <button class="btn btn-success" id="download" onclick="printTicket()">Print</button>
+    <div class="row pt-4">
+        <div class="col-lg-12 d-print-none mb-3">
+            <button class="btn btn-success" onclick="printTicket()">Print Ticket</button>
+            <a href="{{ ticket_file_url }}" class="btn btn-primary" download>Download PDF</a>
         </div>
 
-        <div class="col-lg-11 mx-auto" id="ticket">
-            <div class="row mb-4">
-                <div class="col-lg-12 text-center p-2 text-success">
-                    <h4>Your Train Tickets</h4>
-                    <p><strong>Booking ID:</strong> {{ bookings.id }}</p>
+        <div class="col-lg-10 mx-auto" id="ticket">
+            <div class="card border-success mb-4">
+                <div class="card-header bg-success text-white text-center">
+                    <h4 class="mb-1">Railway Ticket</h4>
+                    <small>Passenger Copy</small>
                 </div>
-
-                <!-- Tickets Loop -->
-                {% for t in ticket %}
-                <div class="col-lg-12 mx-auto mb-4 border border-success">
-                    <div class="row">
-                        <!-- Right side (single ticket view) -->
-                        <div class="col-lg-5 mx-auto">
-                            <div class="row">
-                                <div class="col-lg-12 mx-auto bg-success text-white border border-dark border-right-0 border-bottom-0 border-top-0">
-                                    <div class="row">
-                                        <div class="col-lg-7 text-center">
-                                            <h5>LTP Ticket</h5>
-                                        </div>
-                                        <div class="col-lg-5 text-right">
-                                            <!-- Removed unnecessary input -->
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-lg-12 text-muted text-center pt-1">
-                                    <p>(Passenger copy)</p>
-                                </div>
-                                <div class="col-lg-12 mx-auto pb-1">
-                                    <h6>Passenger Name:<br>{{ t.user.first_name }} {{ t.user.last_name }}</h6>
-                                    <h6>Travel Date:<br>{{ t.travel_date }}</h6>
-                                    <h6>Travel Time:<br>{{ t.departure }}</h6>
-                                    <h6>Train Name:<br>{{ t.train_name }}</h6>
-                                    <h6>From:<br>{{ t.source }}</h6>
-                                    <h6>To:<br>{{ t.destination }}</h6>
-                                    <h6>Class Type:<br>{{ t.class_type }}</h6>
-                                </div>
+                <div class="card-body">
+                    <form>
+                        <div class="form-row">
+                            <div class="form-group col-md-4">
+                                <label>Booking ID</label>
+                                <input type="text" class="form-control" value="{{ booking.id }}" readonly>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label>Booking Date</label>
+                                <input type="text" class="form-control" value="{{ booking.booking_date|default:booking.created_at|date:'Y-m-d' }}" readonly>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label>Booking Status</label>
+                                <input type="text" class="form-control font-weight-bold" value="{{ booking_status_value|default:'Pending' }}" readonly>
                             </div>
                         </div>
-                    </div>
+
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label>Passenger Name</label>
+                                <input type="text" class="form-control" value="{{ passenger_name }}" readonly>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label>Email</label>
+                                <input type="text" class="form-control" value="{{ email_value }}" readonly>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label>Phone</label>
+                                <input type="text" class="form-control" value="{{ phone_value }}" readonly>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label>Train Name</label>
+                                <input type="text" class="form-control" value="{{ booking.train_name }}" readonly>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label>From</label>
+                                <input type="text" class="form-control" value="{{ booking.source }}" readonly>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label>To</label>
+                                <input type="text" class="form-control" value="{{ booking.destination }}" readonly>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group col-md-4">
+                                <label>Travel Date</label>
+                                <input type="text" class="form-control" value="{{ booking.travel_date }}" readonly>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label>Departure Time</label>
+                                <input type="text" class="form-control" value="{{ booking.departure_time }}" readonly>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label>Arrival Time</label>
+                                <input type="text" class="form-control" value="{{ booking.arrival_time }}" readonly>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group col-md-3">
+                                <label>Class Type</label>
+                                <input type="text" class="form-control" value="{{ class_type_value }}" readonly>
+                            </div>
+                            <div class="form-group col-md-3">
+                                <label>Adults</label>
+                                <input type="text" class="form-control" value="{{ booking.passengers_adult|default:0 }}" readonly>
+                            </div>
+                            <div class="form-group col-md-3">
+                                <label>Children</label>
+                                <input type="text" class="form-control" value="{{ booking.passengers_child|default:0 }}" readonly>
+                            </div>
+                            <div class="form-group col-md-3">
+                                <label>Total Passengers</label>
+                                <input type="text" class="form-control" value="{{ passenger_total }}" readonly>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group col-md-12">
+                                <label>Seat Number(s)</label>
+                                <input type="text" class="form-control font-weight-bold" value="{{ selected_seats_value }}" readonly>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group col-md-3">
+                                <label>Total Fare (KES)</label>
+                                <input type="text" class="form-control font-weight-bold" value="{{ booking.total_fare }}" readonly>
+                            </div>
+                            <div class="form-group col-md-3">
+                                <label>Payment Method</label>
+                                <input type="text" class="form-control" value="{{ pay_method_value }}" readonly>
+                            </div>
+                            <div class="form-group col-md-3">
+                                <label>Transaction Code</label>
+                                <input type="text" class="form-control" value="{{ trxid_value }}" readonly>
+                            </div>
+                            <div class="form-group col-md-3">
+                                <label>Payment Status</label>
+                                <input type="text" class="form-control font-weight-bold text-success" value="{{ pay_status_value }}" readonly>
+                            </div>
+                        </div>
+                    </form>
                 </div>
-                {% empty %}
-                    <p>No tickets found for this booking.</p>
-                {% endfor %}
             </div>
         </div>
     </div>
 </div>
 
-<script src="/static/js/jquery-slim.min.js" crossorigin="anonymous"></script>
-<script src="/static/js/popper.min.js" crossorigin="anonymous"></script>
-<script src="/static/js/bootstrap.min.js" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.js"></script>
-<script src="/static/js/pdf.js" crossorigin="anonymous"></script>
-
+<style>
+@media print {
+    .d-print-none {
+        display: none !important;
+    }
+}
+</style>
 <script>
 function printTicket() {
-    const printContent = document.getElementById('ticket').innerHTML;
-    const originalContent = document.body.innerHTML;
-
-    document.body.innerHTML = printContent;
     window.print();
-
-    document.body.innerHTML = originalContent;
-    location.reload();
 }
-</script>
 
-<script>
-    // Auto print if URL contains ?print=true
-    window.addEventListener('DOMContentLoaded', function () {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('print') === 'true') {
-            window.print();
-        }
-    });
+window.addEventListener('DOMContentLoaded', function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('print') === 'true') {
+        window.print();
+    }
+});
 </script>
-
-</body>
-</html>
 {% endblock content %}

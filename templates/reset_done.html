@@ -3,6 +3,24 @@
 {% block title %}Check Your Email{% endblock %}
 
 {% block content %}
-<h2>Check Your Email</h2>
-<p>We’ve sent you an email with instructions for resetting your password. If it doesn’t appear within a few minutes, check your spam folder.</p>
+<style>
+    .reset-done-card {
+        max-width: 640px;
+        margin: 80px auto;
+        background: rgba(17, 24, 39, 0.9);
+        color: #ffffff;
+        border-radius: 12px;
+        padding: 28px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+        text-align: center;
+    }
+</style>
+
+<div class="reset-done-card">
+    <h2 class="mb-3">Check Your Email</h2>
+    <p class="mb-0">
+        We've sent you an email with instructions for resetting your password.
+        If it doesn't appear within a few minutes, check your spam folder.
+    </p>
+</div>
 {% endblock %}

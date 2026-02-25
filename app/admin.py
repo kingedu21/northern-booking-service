@@ -1,7 +1,8 @@
 from django.contrib import admin
 from .models import (
     Station, ClassType, Train, Booking, BillingInfo, BookingDetail,CustomUser,
-    Payment, Ticket, MpesaTransaction, ContactForm, ContactNumber, Feedback
+    Payment, Ticket, MpesaTransaction, ContactForm, ContactNumber, Feedback,
+    SeatAllocation, TrainClassCapacity
 )
 
 def all_fields(model):
@@ -14,20 +15,16 @@ class StationAdmin(admin.ModelAdmin):
 
 @admin.register(ClassType)
 class ClassTypeAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name', 'price']
+    list_display = ['id', 'name', 'price', 'adult_price', 'child_price']
 
-# @admin.register(Train)
-# class TrainAdmin(admin.ModelAdmin):
-#     list_display = ['id', 'name', 'source', 'destination']
-#     filter_horizontal = ('class_type',)
 from django.contrib import admin
 from .models import Train, Station, ClassType  # Import your models
 
 @admin.register(Train)
 class TrainAdmin(admin.ModelAdmin):
-    list_display = ('name', 'source', 'destination', 'departure_time', 'arrival_time', 'get_class_types')
+    list_display = ('name', 'capacity_group', 'source', 'destination', 'departure_time', 'arrival_time', 'get_class_types')
     list_filter = ('source', 'destination', 'class_type')
-    search_fields = ('name',)
+    search_fields = ('name', 'capacity_group')
     filter_horizontal = ('class_type',)  # Easier multi-select widget in admin
 
     def get_class_types(self, obj):
@@ -36,7 +33,7 @@ class TrainAdmin(admin.ModelAdmin):
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user', 'train_name', 'source', 'destination', 'status', 'travel_date', 'total_fare']
+    list_display = ['id', 'user', 'train_name', 'source', 'destination', 'status', 'travel_date', 'selected_seats', 'total_fare']
     list_filter = ['status', 'travel_date']
     search_fields = ['user__username', 'train_name', 'source', 'destination']
 
@@ -78,3 +75,17 @@ class FeedbackAdmin(admin.ModelAdmin):
 @admin.register(CustomUser)
 class CustomUserAdmin(admin.ModelAdmin):
     list_display = all_fields(CustomUser)
+
+
+@admin.register(SeatAllocation)
+class SeatAllocationAdmin(admin.ModelAdmin):
+    list_display = ['id', 'train', 'class_type', 'travel_date', 'seat_number', 'booking', 'created_at']
+    list_filter = ['train', 'class_type', 'travel_date']
+    search_fields = ['booking__id', 'class_type__name']
+
+
+@admin.register(TrainClassCapacity)
+class TrainClassCapacityAdmin(admin.ModelAdmin):
+    list_display = ['id', 'train', 'class_type', 'seat_count', 'created_at']
+    list_filter = ['train', 'class_type']
+    search_fields = ['train__name', 'class_type__name']

@@ -5,6 +5,19 @@
 {% endblock title %}
 
 {% block content %}
+<style>
+    .verify-panel {
+        background: rgba(20, 20, 20, 0.78);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+    }
+    .verify-result {
+        background: rgba(255, 255, 255, 0.92);
+        border-radius: 10px;
+        padding: 20px;
+        color: #1f2937;
+    }
+</style>
 
     <div class="container verify_ticket">
         <div class="row">
@@ -16,8 +29,8 @@
 
             <div class="col-lg-12 mt-2 mb-2">
                 <div class="row">
-                    <div class="col-lg-10 bg-secondary pt-3 pb-4 text-white mx-auto">
-                        <form role="search" action="verify_ticket">
+                    <div class="col-lg-10 verify-panel pt-3 pb-4 text-white mx-auto">
+                        <form role="search" method="get" action="{% url 'verify_ticket' %}">
                             <div class="row">   
                                 <div class="col-lg-3">
                                     <label for="train">Train Name: </label>
@@ -48,24 +61,24 @@
             <!-- this is section is for gettting verification result -->
 
             {% if request.GET %}
-            {% if request.GET.train == ticket.train_name and request.GET.tid == ticket.id and request.GET.date == ticket.travel_date %}
+            {% if verified %}
 
-            <div class="col-lg-12 pt-4 text-center " style="color: white; font-size: 20px; " >
-              <b>  <h4>Ticket Verification Result:</h4>
-                <h6>Train Name: {{request.GET.train_name}} | Travel Date: {{request.GET.date}} | Ticket ID: {{request.GET.tid}}</h6>
-            </div></b>
-            <div class="col-lg-12 pt-4 text-success text-center">
-                <h1><i class="fa-solid fa-circle-check"></i></h1>
-                <h3>This ticket is verified.</h3>
+            <div class="col-lg-10 mx-auto mt-4 verify-result text-center">
+                <h4>Ticket Verification Result:</h4>
+                <h6>Train Name: {{ query_train }} | Travel Date: {{ query_date }} | Ticket ID: {{ query_tid }}</h6>
+                <div class="pt-3 text-success">
+                    <h1><i class="fa-solid fa-circle-check"></i></h1>
+                    <h3>This ticket is verified.</h3>
+                </div>
             </div>
             {% else %}
-            <div class="col-lg-12 pt-4 text-center">
+            <div class="col-lg-10 mx-auto mt-4 verify-result text-center">
                 <h4>Ticket Verification Result:</h4>
-                <h6>Train Name: {{request.GET.train}} | Travel Date: {{request.GET.date}} | Ticket ID: {{request.GET.tid}}</h6>
-            </div>
-            <div class="col-lg-12 pt-4 text-danger text-center">
-                <h1><i class="fa-solid fa-circle-xmark"></i></h1>
-                <h3>This ticket is not verified.</h3>
+                <h6>Train Name: {{ query_train }} | Travel Date: {{ query_date }} | Ticket ID: {{ query_tid }}</h6>
+                <div class="pt-3 text-danger">
+                    <h1><i class="fa-solid fa-circle-xmark"></i></h1>
+                    <h3>This ticket is not verified.</h3>
+                </div>
             </div>
 
             {% endif %}    

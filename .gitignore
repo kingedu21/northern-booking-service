@@ -1,2 +1,27 @@
 .idea
 edu
+.env
+.env.*
+!.env.example
+
+# Python cache/build artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Django/runtime files
+media/
+*.log
+db.sqlite3
+mysql_backup.sql
+
+# Local tools/binaries
+ngrok.exe
+query

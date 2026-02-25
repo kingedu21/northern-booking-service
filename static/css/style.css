@@ -452,3 +452,42 @@
 .verify_ticket {
   height: 95vh;
 }
+
+/* booking history */
+
+.booking-history-page {
+  background: #f8f9fa;
+  min-height: calc(100vh - 56px);
+}
+
+.history-form {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.25);
+  padding: 24px;
+}
+
+.history-form h4 {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.history-form .table {
+  background-color: #ffffff;
+}
+
+.history-form .table td,
+.history-form .table th {
+  vertical-align: middle;
+}
+
+@media (max-width: 768px) {
+  .history-form {
+    padding: 14px;
+  }
+
+  .history-form .btn {
+    width: 100%;
+    margin-bottom: 6px;
+  }
+}

@@ -5,17 +5,31 @@
 {% endblock title %}
 
 {% block content %}
-    <h1>Goodbye</h1>
-    <p>You have logged out.</p>
+<style>
+    .logout-card {
+        max-width: 520px;
+        margin: 80px auto;
+        background: rgba(17, 24, 39, 0.9);
+        color: #ffffff;
+        border-radius: 12px;
+        padding: 28px;
+        text-align: center;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+    }
+    .logout-actions a {
+        min-width: 130px;
+    }
+</style>
+
+<div class="logout-card">
+    <h1 class="mb-3">Goodbye</h1>
+    <p class="mb-4">You have logged out.</p>
 
     {% if not request.user.is_authenticated %}
-        <ul>
-            <li>
-                <a class="nav-link" href="{% url 'login' %}">Login</a>
-            </li>
-            <li>
-                <a class="nav-link" href="{% url 'signup' %}">Register</a>
-            </li>
-        </ul>
+    <div class="logout-actions d-flex justify-content-center gap-2 flex-wrap">
+        <a class="btn btn-light" href="{% url 'login' %}">Login</a>
+        <a class="btn btn-success" href="{% url 'signup' %}">Register</a>
+    </div>
     {% endif %}
+</div>
 {% endblock %}

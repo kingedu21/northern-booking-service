@@ -5,11 +5,12 @@ cssselect2==0.5.0
 Django==4.0.2
 future==0.18.2
 html5lib==1.1
-lxml==4.8.0
+lxml==4.9.3
 Pillow>=11.3.0
 PyPDF3==1.0.6
 python-bidi==0.4.2
-reportlab==3.6.8
+reportlab>=4.4.9
+redis>=5.0.0
 six==1.16.0
 sqlparse==0.4.2
 svglib==1.2.1
@@ -17,3 +18,5 @@ tinycss2==1.1.1
 tqdm==4.63.0
 webencodings==0.5.1
 xhtml2pdf==0.2.6
+psycopg2-binary==2.9.10
+

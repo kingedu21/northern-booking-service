@@ -7,45 +7,101 @@
 {% endblock title %}
 
 {% block content %}
+<style>
+    .available {
+        min-height: calc(100vh - 56px);
+        padding-bottom: 24px;
+    }
+    .results-summary {
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+    }
+    .results-summary .summary-item h6 {
+        margin-bottom: 4px;
+        color: #dbeafe;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .results-summary .summary-item p {
+        margin-bottom: 0;
+        font-weight: 600;
+        word-break: break-word;
+    }
+    .available-table-wrap {
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+    }
+    .available-table-wrap table {
+        margin-bottom: 0;
+    }
+    .seat-picker {
+        max-height: 140px;
+        overflow-y: auto;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 8px;
+        padding: 8px;
+    }
+    .seat-chip {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 999px;
+        padding: 4px 10px;
+    }
+    .fare-breakdown {
+        font-size: 0.92rem;
+        line-height: 1.5;
+    }
+    .fare-total {
+        display: inline-block;
+        margin-top: 4px;
+        font-weight: 700;
+        color: #9ae6b4;
+    }
+</style>
 <div class="available">
-    <div class="col-lg-12 text-center p-4 bg-dark text-white">
-        <h4>Available Trains ({{ search.count }})</h4>
+    <div class="col-lg-12 text-center p-4 bg-dark text-white mb-3">
+        <h4 class="mb-0">Available Trains ({{ search.count }})</h4>
     </div>
 
-    <div class="row bg-primary text-white p-3 mr-0 text-center">
+    <div class="container-fluid px-lg-4">
+        <div class="row bg-primary text-white p-3 mr-0 mb-4 results-summary">
         <div class="col-lg-12 text-left pl-4">
-            <h3>Results</h3>
+            <h3 class="mb-3">Search Summary</h3>
         </div>
-        <div class="col-lg-3">
+        <div class="col-lg-3 col-md-6 mb-3 summary-item">
             <h5>From:</h5>
-            <h6>{{ source.name }}, {{ source.place }}</h6>
+            <p>{{ source.name }}, {{ source.place }}</p>
         </div>
-        <div class="col-lg-3">
+        <div class="col-lg-3 col-md-6 mb-3 summary-item">
             <h5>To:</h5>
-            <h6>{{ destination.name }}, {{ destination.place }}</h6>
+            <p>{{ destination.name }}, {{ destination.place }}</p>
         </div>
-        <div class="col-lg-2">
+        <div class="col-lg-2 col-md-6 mb-3 summary-item">
             <h5>Date:</h5>
-            <h6>{{ request.GET.date }}</h6>
+            <p>{{ request.GET.date }}</p>
         </div>
-        <div class="col-lg-2">
+        <div class="col-lg-2 col-md-6 mb-3 summary-item">
             <h5>Class Type:</h5>
-            <h6>{{ class_type.name }}</h6>
+            <p>{{ class_type.name }}</p>
         </div>
-        <div class="col-lg-1">
+        <div class="col-lg-1 col-md-6 mb-3 summary-item">
             <h5>Adult:</h5>
-            <h6>{{ request.GET.pa }}</h6>
+            <p>{{ request.GET.pa }}</p>
         </div>
-        <div class="col-lg-1">
+        <div class="col-lg-1 col-md-6 mb-3 summary-item">
             <h5>Child:</h5>
-            <h6>{{ request.GET.pc }}</h6>
+            <p>{{ request.GET.pc }}</p>
+        </div>
         </div>
     </div>
 
-    <div class="container">
+    <div class="container-fluid px-lg-4">
         <div class="row">
             <div class="col-lg-12 text-center p-4 bg-dark text-white">
-                <h4>Available Trains</h4>
+                <h4 class="mb-0">Available Trains</h4>
             </div>
             {% if not search.count > 0 %}
             <div class="col-lg-12 m-1">
@@ -53,13 +109,16 @@
             </div>
             {% else %}
             <div class="col-lg-12 m-1">
-                <table class="table text-center text-white bg-dark">
+                <div class="table-responsive available-table-wrap">
+                <table class="table table-striped table-hover text-center text-white bg-dark">
                     <thead class="thead-dark bg-dark">
                         <tr>
                             <th scope="col">Train Name</th>
                             <th scope="col">Departure</th>
                             <th scope="col">Arrival</th>
                             <th scope="col">Duration</th>
+                            <th scope="col">Available Seats ({{ class_type.name }})</th>
+                            <th scope="col">Choose Seats</th>
                             <th scope="col">Total Passengers</th>
                             <th scope="col">Fare</th>
                             <th scope="col">Book</th>
@@ -67,54 +126,315 @@
                     </thead>
                     <tbody>
                     {% for train in search %}
-                    <tr>
-                        <form method="get" action="{% url 'booking' %}">
+                    <tr class="seat-booking-row" data-form-id="booking_form_{{ train.id }}">
                             <td>
-                                <input type="hidden" name="train" value="{{ train.name }}">
+                                <form id="booking_form_{{ train.id }}" method="get" action="{% url 'booking' %}" class="seat-booking-form"></form>
+                                <input type="hidden" name="train" value="{{ train.name }}" form="booking_form_{{ train.id }}">
                                 {{ train.name }}
                             </td>
                             <td>
-                                <input type="hidden" name="departure" value="{{ train.departure_time }}">
+                                <input type="hidden" name="departure" value="{{ train.departure_time }}" form="booking_form_{{ train.id }}">
                                 {{ train.departure_time }}
                             </td>
                             <td>
-                                <input type="hidden" name="arrival" value="{{ train.arrival_time }}">
+                                <input type="hidden" name="arrival" value="{{ train.arrival_time }}" form="booking_form_{{ train.id }}">
                                 {{ train.arrival_time }}
                             </td>
                             <td>{{ train.arrival_time|duration:train.departure_time }}</td>
                             <td>
-                                <input type="hidden" name="tp" value="{{ request.GET.pa|passengers:request.GET.pc }}">
+                                <input type="hidden" name="train_id" value="{{ train.id }}" form="booking_form_{{ train.id }}">
+                                <span class="available-seats-count" data-train-id="{{ train.id }}">{{ train.available_seats }}</span>
+                            </td>
+                            <td>
+                                <div class="seat-picker" data-train-id="{{ train.id }}" data-required-seats="{{ request.GET.pa|passengers:request.GET.pc }}" data-form-id="booking_form_{{ train.id }}">
+                                    {% for seat_no in train.available_seat_numbers %}
+                                    <div class="form-check form-check-inline mr-2 mb-1 seat-chip">
+                                        <input
+                                            class="form-check-input seat-checkbox"
+                                            type="checkbox"
+                                            name="selected_seats"
+                                            id="seat_{{ train.id }}_{{ seat_no }}"
+                                            value="{{ seat_no }}"
+                                            form="booking_form_{{ train.id }}"
+                                        >
+                                        <label class="form-check-label" for="seat_{{ train.id }}_{{ seat_no }}">Seat {{ seat_no }}</label>
+                                    </div>
+                                    {% empty %}
+                                    <span class="text-warning">No seats configured for {{ class_type.name }}</span>
+                                    {% endfor %}
+                                </div>
+                                <small class="text-light d-block">Pick exactly {{ request.GET.pa|passengers:request.GET.pc }}</small>
+                            </td>
+                            <td>
+                                <input type="hidden" name="tp" value="{{ request.GET.pa|passengers:request.GET.pc }}" form="booking_form_{{ train.id }}">
                                 {{ request.GET.pa|passengers:request.GET.pc }}
                             </td>
                             <td>
-                                <input type="hidden" name="total_fare" value="{{ request.GET.pa|passengers:request.GET.pc|multiply:class_type.price }}">
-                                {{ request.GET.pa|passengers:request.GET.pc|multiply:class_type.price }}
+                                <input type="hidden" name="total_fare" value="{{ quote_total_fare }}" form="booking_form_{{ train.id }}">
+                                <div class="fare-breakdown">
+                                    Adult: {{ adult_fare }} x {{ request.GET.pa }}<br>
+                                    Child: {{ child_fare }} x {{ request.GET.pc }}<br>
+                                    <span class="fare-total">Total: {{ quote_total_fare }}</span>
+                                </div>
                             </td>
                             <td>
                                 <!-- Hidden fields to persist full booking context -->
-                                <input type="hidden" name="source" value="{{ source.name }}">
-                                <input type="hidden" name="destination" value="{{ destination.name }}">
-                                <input type="hidden" name="date" value="{{ request.GET.date }}">
-                                <input type="hidden" name="pa" value="{{ request.GET.pa }}">
-                                <input type="hidden" name="pc" value="{{ request.GET.pc }}">
-                                <input type="hidden" name="ctype" value="{{ class_type.id }}">
+                                <input type="hidden" name="source" value="{{ source.name }}" form="booking_form_{{ train.id }}">
+                                <input type="hidden" name="destination" value="{{ destination.name }}" form="booking_form_{{ train.id }}">
+                                <input type="hidden" name="source_id" value="{{ source.id }}" form="booking_form_{{ train.id }}">
+                                <input type="hidden" name="destination_id" value="{{ destination.id }}" form="booking_form_{{ train.id }}">
+                                <input type="hidden" name="date" value="{{ request.GET.date }}" form="booking_form_{{ train.id }}">
+                                <input type="hidden" name="pa" value="{{ request.GET.pa }}" form="booking_form_{{ train.id }}">
+                                <input type="hidden" name="pc" value="{{ request.GET.pc }}" form="booking_form_{{ train.id }}">
+                                <input type="hidden" name="ctype" value="{{ class_type.id }}" form="booking_form_{{ train.id }}">
 
                                 {% with show=request.GET.date|book:train.departure_time %}
-                                {% if show %}
-                                    <button type="submit" class="btn btn-success">Book</button>
+                                {% if show and train.available_seats >= request.GET.pa|passengers:request.GET.pc %}
+                                    <button type="submit" class="btn btn-success book-btn" form="booking_form_{{ train.id }}" disabled>Book</button>
+                                {% elif show %}
+                                    <span class="text-warning">Not enough seats</span>
                                 {% else %}
                                     <span class="text-danger">The train left!</span>
                                 {% endif %}
                                 {% endwith %}
                             </td>
-                        </form>
                     </tr>
                     {% endfor %}
                     </tbody>
                 </table>
+                </div>
             </div>
             {% endif %}
         </div>
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const seatApiUrl = "{% url 'seat_availability' %}";
+    const travelDate = "{{ request.GET.date|escapejs }}";
+    const classType = "{{ class_type.id }}";
+    const POLL_INTERVAL_MS = 10000;
+    const trainIds = Array.from(document.querySelectorAll('.available-seats-count'))
+        .map(function (el) { return el.dataset.trainId; })
+        .filter(Boolean);
+    let pollTimer = null;
+
+    function buildSeatOptions(trainId, seatNumbers, selectedValues, formId) {
+        return seatNumbers.map(function (seatNo) {
+            const checked = selectedValues.has(String(seatNo)) ? ' checked' : '';
+            return (
+                '<div class="form-check form-check-inline mr-2 mb-1 seat-chip">' +
+                '<input class="form-check-input seat-checkbox" type="checkbox" name="selected_seats" ' +
+                'id="seat_' + trainId + '_' + seatNo + '" value="' + seatNo + '" form="' + formId + '"' + checked + '>' +
+                '<label class="form-check-label" for="seat_' + trainId + '_' + seatNo + '">Seat ' + seatNo + '</label>' +
+                '</div>'
+            );
+        }).join('');
+    }
+
+    function refreshSeatAvailability() {
+        if (!trainIds.length) return;
+        const query = '?date=' + encodeURIComponent(travelDate) +
+            '&class_type=' + encodeURIComponent(classType) +
+            '&train_ids=' + encodeURIComponent(trainIds.join(','));
+
+        fetch(seatApiUrl + query, { method: 'GET' })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                const results = data.results || {};
+
+                document.querySelectorAll('.seat-picker').forEach(function (picker) {
+                    const trainId = picker.dataset.trainId;
+                    const result = results[String(trainId)];
+                    if (!result) return;
+
+                    const availableNumbers = result.available_seat_numbers || [];
+                    const selectedValues = new Set(
+                        Array.from(picker.querySelectorAll('.seat-checkbox:checked')).map(function (cb) { return cb.value; })
+                    );
+                    const allowedSelected = new Set(
+                        Array.from(selectedValues).filter(function (seat) {
+                            return availableNumbers.includes(Number(seat));
+                        })
+                    );
+
+                    const row = picker.closest('.seat-booking-row');
+                    const formId = picker.dataset.formId || row?.dataset.formId || '';
+                    if (availableNumbers.length) {
+                        picker.innerHTML = buildSeatOptions(trainId, availableNumbers, allowedSelected, formId);
+                    } else {
+                        picker.innerHTML = '<span class="text-warning">No seats configured for {{ class_type.name }}</span>';
+                    }
+
+                    const countEl = document.querySelector('.available-seats-count[data-train-id="' + trainId + '"]');
+                    if (countEl) countEl.textContent = String(result.available_seats || 0);
+
+                    const required = Number(picker.dataset.requiredSeats || 0);
+                    const bookBtn = row?.querySelector('.book-btn');
+                    if (bookBtn) {
+                        if (Number(result.available_seats || 0) < required) {
+                            bookBtn.disabled = true;
+                            bookBtn.textContent = 'Seats Just Filled';
+                            bookBtn.classList.remove('btn-success');
+                            bookBtn.classList.add('btn-secondary');
+                        } else {
+                            const checkedCount = picker.querySelectorAll('.seat-checkbox:checked').length;
+                            const canBook = checkedCount === required;
+                            bookBtn.disabled = !canBook;
+                            bookBtn.textContent = 'Book';
+                            bookBtn.classList.remove('btn-secondary');
+                            bookBtn.classList.add('btn-success');
+                        }
+                    }
+                });
+            })
+            .catch(function () {
+                // Keep current UI if refresh fails.
+            });
+    }
+
+    function fetchSeatAvailabilityForTrain(trainId) {
+        const query = '?date=' + encodeURIComponent(travelDate) +
+            '&class_type=' + encodeURIComponent(classType) +
+            '&train_ids=' + encodeURIComponent(String(trainId));
+        return fetch(seatApiUrl + query, { method: 'GET' })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                return (data.results || {})[String(trainId)] || null;
+            })
+            .catch(function () {
+                return null;
+            });
+    }
+
+    const rows = document.querySelectorAll('.seat-booking-row');
+    function syncBookButtonState(row) {
+        const picker = row.querySelector('.seat-picker');
+        const bookBtn = row.querySelector('.book-btn');
+        if (!picker || !bookBtn) return;
+
+        const required = Number(picker.dataset.requiredSeats || 0);
+        const availableCount = Number(
+            row.querySelector('.available-seats-count')?.textContent || 0
+        );
+        const selectedCount = picker.querySelectorAll('.seat-checkbox:checked').length;
+
+        if (availableCount < required) {
+            bookBtn.disabled = true;
+            bookBtn.textContent = 'Seats Just Filled';
+            bookBtn.classList.remove('btn-success');
+            bookBtn.classList.add('btn-secondary');
+            return;
+        }
+
+        bookBtn.disabled = selectedCount !== required;
+        bookBtn.textContent = 'Book';
+        bookBtn.classList.remove('btn-secondary');
+        bookBtn.classList.add('btn-success');
+    }
+
+    rows.forEach(function (row) {
+        const picker = row.querySelector('.seat-picker');
+        const required = Number(picker?.dataset.requiredSeats || 0);
+        const formId = row.dataset.formId || '';
+        const form = formId ? document.getElementById(formId) : null;
+
+        if (picker) {
+            picker.addEventListener('change', function (event) {
+                if (!event.target.classList.contains('seat-checkbox')) {
+                    return;
+                }
+                const currentBoxes = picker.querySelectorAll('.seat-checkbox');
+                const checked = Array.from(currentBoxes).filter(function (cb) { return cb.checked; });
+                if (checked.length > required) {
+                    event.target.checked = false;
+                    alert(`You can select only ${required} seat(s).`);
+                }
+                syncBookButtonState(row);
+            });
+        }
+
+        if (form) {
+        form.addEventListener('submit', function (event) {
+            const currentBoxes = picker ? picker.querySelectorAll('.seat-checkbox') : [];
+            const selectedCount = Array.from(currentBoxes).filter(function (cb) { return cb.checked; }).length;
+            if (selectedCount !== required) {
+                event.preventDefault();
+                alert(`Please choose exactly ${required} seat(s).`);
+                return;
+            }
+
+            event.preventDefault();
+            const trainId = picker?.dataset.trainId;
+            const selectedSeats = Array.from(currentBoxes)
+                .filter(function (cb) { return cb.checked; })
+                .map(function (cb) { return Number(cb.value); });
+            const submitBtn = row.querySelector('.book-btn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Checking...';
+            }
+
+            fetchSeatAvailabilityForTrain(trainId).then(function (latest) {
+                if (!latest) {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Book';
+                    }
+                    alert('Could not verify live seat availability. Please try again.');
+                    return;
+                }
+
+                const availableNow = new Set((latest.available_seat_numbers || []).map(function (n) { return Number(n); }));
+                const unavailable = selectedSeats.filter(function (seat) { return !availableNow.has(seat); });
+
+                if (unavailable.length > 0) {
+                    refreshSeatAvailability();
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.textContent = 'Book';
+                    }
+                    alert('Seat(s) ' + unavailable.join(', ') + ' just got booked. Please pick from updated seats.');
+                    syncBookButtonState(row);
+                    return;
+                }
+
+                form.submit();
+            });
+        });
+        }
+
+        syncBookButtonState(row);
+    });
+
+    function startPolling() {
+        if (pollTimer !== null) return;
+        pollTimer = window.setInterval(function () {
+            if (!document.hidden) {
+                refreshSeatAvailability();
+            }
+        }, POLL_INTERVAL_MS);
+    }
+
+    function stopPolling() {
+        if (pollTimer === null) return;
+        window.clearInterval(pollTimer);
+        pollTimer = null;
+    }
+
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+            stopPolling();
+        } else {
+            refreshSeatAvailability();
+            startPolling();
+        }
+    });
+
+    window.addEventListener('beforeunload', stopPolling);
+
+    refreshSeatAvailability();
+    startPolling();
+});
+</script>
 {% endblock content %}

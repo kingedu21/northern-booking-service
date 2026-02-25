@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
+from decimal import Decimal
 # Create your models here.
 from django.contrib.auth.models import AbstractUser
 from django.db import models
@@ -34,11 +35,26 @@ class Station(models.Model):
 class ClassType(models.Model):
     name = models.CharField(max_length=50)
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    adult_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    child_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, blank=True, null=True)
 
     def __str__(self):
         return self.name
+
+    @property
+    def effective_adult_price(self):
+        return self.adult_price if self.adult_price is not None else self.price
+
+    @property
+    def effective_child_price(self):
+        return self.child_price if self.child_price is not None else self.price
+
+    def calculate_total_fare(self, adults=0, children=0):
+        adults = max(int(adults or 0), 0)
+        children = max(int(children or 0), 0)
+        return (Decimal(adults) * self.effective_adult_price) + (Decimal(children) * self.effective_child_price)
 
 
 
@@ -92,6 +108,13 @@ class Train(models.Model):
         verbose_name=_("Class Types"),
         help_text=_("Select all available classes for this train")
     )
+    capacity_group = models.CharField(
+        max_length=64,
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text=_("Optional shared seat-capacity group key for duplicate trip rows."),
+    )
 
     created_at = models.DateTimeField(
         auto_now_add=True,
@@ -107,10 +130,46 @@ class Train(models.Model):
     def __str__(self):
         return self.name if self.name else "Unnamed Train"
 
+    def seat_scope_key(self):
+        group = (self.capacity_group or "").strip()
+        if group:
+            return f"group:{group.lower()}"
+        return f"train:{self.id}"
+
     class Meta:
         verbose_name = _("Train")
         verbose_name_plural = _("Trains")
         ordering = ['name']
+
+
+class TrainClassCapacity(models.Model):
+    train = models.ForeignKey(
+        'Train',
+        on_delete=models.CASCADE,
+        related_name='class_capacities'
+    )
+    class_type = models.ForeignKey(
+        'ClassType',
+        on_delete=models.CASCADE,
+        related_name='train_capacities'
+    )
+    seat_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['train', 'class_type'],
+                name='unique_train_class_capacity'
+            )
+        ]
+        ordering = ['train', 'class_type']
+        verbose_name = _("Train Class Capacity")
+        verbose_name_plural = _("Train Class Capacities")
+
+    def __str__(self):
+        return f"{self.train} - {self.class_type}: {self.seat_count}"
 
 
 class Booking(models.Model):
@@ -139,6 +198,7 @@ class Booking(models.Model):
     payment_method = models.CharField(max_length=50, null=True, blank=True)
     travel_date = models.DateField(null=True, blank=True)
     travel_dt = models.DateTimeField(blank=True, null=True)
+    selected_seats = models.CharField(max_length=255, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, blank=True, null=True)
 
@@ -268,3 +328,25 @@ class Feedback(models.Model):
 
     def __str__(self):
         return f"Feedback from {self.name}"
+
+
+class SeatAllocation(models.Model):
+    train = models.ForeignKey('Train', on_delete=models.CASCADE, related_name='seat_allocations')
+    booking = models.ForeignKey('Booking', on_delete=models.CASCADE, related_name='seat_allocations')
+    class_type = models.ForeignKey('ClassType', on_delete=models.SET_NULL, null=True, blank=True, related_name='seat_allocations')
+    travel_date = models.DateField()
+    seat_number = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['train', 'class_type', 'travel_date', 'seat_number'],
+                name='unique_train_class_date_seat'
+            )
+        ]
+        ordering = ['travel_date', 'seat_number']
+
+    def __str__(self):
+        class_name = self.class_type.name if self.class_type else "Unassigned Class"
+        return f"{self.train} {self.travel_date} {class_name} Seat {self.seat_number}"

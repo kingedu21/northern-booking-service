@@ -1,25 +1,54 @@
 
-from pathlib import Path
 import os
+from pathlib import Path
+import socket
 
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+def env_bool(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in ("1", "true", "yes", "on")
+
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def load_env_file(path):
+    if not path.exists():
+        return
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip())
+
+
+load_env_file(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-=srk^k2nb7@y2w(#fk3dw29$kxda7g1@=4710ew$!$$&c1zi)('
+SECRET_KEY = os.getenv(
+    "DJANGO_SECRET_KEY",
+    "change-me-in-env",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool("DJANGO_DEBUG", True)
 
-ALLOWED_HOSTS = [
-    '127.0.0.1',
-    'Localhost',
-]
+_allowed_hosts_raw = os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost")
+ALLOWED_HOSTS = [host.strip() for host in _allowed_hosts_raw.split(",") if host.strip()]
+if DEBUG:
+    for tunnel_host in [".ngrok-free.app", ".ngrok-free.dev", ".ngrok.io", ".loca.lt", ".trycloudflare.com"]:
+        if tunnel_host not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(tunnel_host)
+
+# Respect proxy/tunnel HTTPS header when present (ngrok/cloudflare/localtunnel).
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 
 # Application definition
@@ -38,7 +67,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-   'django.middleware.csrf.CsrfViewMiddleware',
+    "django.middleware.csrf.CsrfViewMiddleware",
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -78,12 +107,12 @@ WSGI_APPLICATION = 'lttp.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'edu',
-        'USER': 'root',
-        'PASSWORD': 'edu',
-        'HOST': 'localhost',
-        'PORT': '3306',
+        "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.postgresql"),
+        "NAME": os.getenv("DB_NAME", "railway_db"),
+        "USER": os.getenv("DB_USER", "django_user"),
+        "PASSWORD": os.getenv("DB_PASSWORD", ""),
+        "HOST": os.getenv("DB_HOST", "127.0.0.1"),
+        "PORT": os.getenv("DB_PORT", "5432"),
     }
 }
 
@@ -118,39 +147,93 @@ USE_I18N = True
 
 USE_TZ = True
 
-DEFAULT_FROM_EMAIL = 'noreply@yourdomain.com'
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@yourdomain.com")
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'mainaedward817@gmail.com'
-EMAIL_HOST_PASSWORD = 'edu8921maish#'
 
 # AUTH_USER_MODEL = 'app.CustomUser'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
-STATIC_URL = 'static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_URL = "static/"
+STATICFILES_DIRS = [BASE_DIR / "static"]
 
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-MEDIA_URL = '/media/'
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-AUTH_USER_MODEL = 'app.CustomUser'
+AUTH_USER_MODEL = "app.CustomUser"
 
 LOGOUT_REDIRECT_URL = "/"
 
+# Redis cache/locking config.
+REDIS_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379")
+USE_REDIS_CACHE = env_bool("USE_REDIS_CACHE", True)
+
+def _locmem_cache_config():
+    return {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "railway-ticketing-local-cache",
+            "TIMEOUT": 300,
+        }
+    }
+
+
+def _redis_available(redis_url):
+    try:
+        import redis
+
+        client = redis.Redis.from_url(
+            redis_url,
+            socket_connect_timeout=0.5,
+            socket_timeout=0.5,
+        )
+        client.ping()
+        return True
+    except (ImportError, OSError, socket.error, Exception):
+        return False
+
+
+if USE_REDIS_CACHE and _redis_available(REDIS_URL):
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
+            "TIMEOUT": 300,
+        }
+    }
+else:
+    CACHES = _locmem_cache_config()
+
+SEAT_LOCK_TTL_SECONDS = int(os.getenv("SEAT_LOCK_TTL_SECONDS", "30"))
+SEAT_AVAILABILITY_CACHE_TTL_SECONDS = int(os.getenv("SEAT_AVAILABILITY_CACHE_TTL_SECONDS", "30"))
+SCHEDULE_CACHE_TTL_SECONDS = int(os.getenv("SCHEDULE_CACHE_TTL_SECONDS", "300"))
+UNPAID_BOOKING_HOLD_SECONDS = int(os.getenv("UNPAID_BOOKING_HOLD_SECONDS", "60"))
+
 # settings.py
 
-MPESA_SHORTCODE = '174379'  # Sandbox PayBill
-MPESA_PASSKEY = 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919'
-MPESA_CONSUMER_KEY = 'kIIuGKbhNS0htfFWTKnhLX2U4uHxIEl4gJTAiKHTNz2q2682'
-MPESA_CONSUMER_SECRET = 'ahK5EkGZEimaVObpBnL1LgzNNMhjzZBLJ8wrfZvsd1M1NNSEuOkmlEIfjqokh9Fc'
-MPESA_CALLBACK_URL = 'https://yourdomain.com/mpesa/callback/'
+MPESA_SHORTCODE = os.getenv("MPESA_SHORTCODE", "174379")  # Sandbox PayBill
+MPESA_PASSKEY = os.getenv(
+    "MPESA_PASSKEY",
+    "",
+)
+MPESA_CONSUMER_KEY = os.getenv("MPESA_CONSUMER_KEY", "")
+MPESA_CONSUMER_SECRET = os.getenv("MPESA_CONSUMER_SECRET", "")
+MPESA_CALLBACK_URL = os.getenv("MPESA_CALLBACK_URL", "https://your-public-domain/mpesa_callback/")
+MPESA_CALLBACK_TIMEOUT_SECONDS = int(os.getenv("MPESA_CALLBACK_TIMEOUT_SECONDS", "180"))
+MPESA_STK_QUERY_MIN_INTERVAL_SECONDS = int(os.getenv("MPESA_STK_QUERY_MIN_INTERVAL_SECONDS", "15"))
+MPESA_STK_QUERY_RATE_LIMIT_BACKOFF_SECONDS = int(os.getenv("MPESA_STK_QUERY_RATE_LIMIT_BACKOFF_SECONDS", "30"))
+
+
