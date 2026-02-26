@@ -3,7 +3,8 @@ from .views import (
     Home, AvailableTrain, Bookings, confirm_booking, BookingHistory,
     BookingDetails, Tickets, CancelBooking, signup, user_login, logout,
     Contact, Feedbacks, VerifyTicket, Profile,
-    process_payment, stk_push, mpesa_callback, mpesa_status, seat_availability
+    process_payment, stk_push, mpesa_callback, mpesa_status, seat_availability,
+    booking_assistant,
 )
 
 urlpatterns = [
@@ -24,6 +25,7 @@ urlpatterns = [
     path('profile/', Profile.as_view(), name='profile'),
     path('process_payment/', process_payment, name='process_payment'),
     path('seat_availability/', seat_availability, name='seat_availability'),
+    path('booking-assistant/', booking_assistant, name='booking_assistant'),
     path('mpesa_status/', mpesa_status, name='mpesa_status'),
     path('stk_push/', stk_push, name='stk_push'),
     path('mpesa_callback/', mpesa_callback, name='mpesa_callback'),

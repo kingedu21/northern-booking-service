@@ -1,0 +1,90 @@
+{% extends "admin/base_site.html" %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .ai-wrap {
+        max-width: 1100px;
+    }
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+        margin: 16px 0;
+    }
+    .kpi {
+        border: 1px solid #d8dce2;
+        border-radius: 10px;
+        background: #fff;
+        padding: 14px;
+    }
+    .kpi .label {
+        color: #5f6b7a;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+    .kpi .value {
+        font-size: 28px;
+        font-weight: 700;
+        margin-top: 6px;
+    }
+    .panel {
+        border: 1px solid #d8dce2;
+        border-radius: 10px;
+        background: #fff;
+        padding: 16px;
+    }
+    .panel pre {
+        white-space: pre-wrap;
+        font-family: inherit;
+        font-size: 14px;
+        line-height: 1.55;
+        margin: 0;
+    }
+    .actions {
+        margin-bottom: 12px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="ai-wrap">
+    <h1>AI Insights</h1>
+    <div class="actions">
+        <a class="button" href="{% url 'admin_dashboard' %}">Back To Revenue Dashboard</a>
+        <a class="button" href="{% url 'admin_ai_insights' %}">Refresh Insights</a>
+    </div>
+
+    <div class="kpi-grid">
+        <div class="kpi">
+            <div class="label">Total Revenue</div>
+            <div class="value">{{ total_revenue|floatformat:2 }}</div>
+        </div>
+        <div class="kpi">
+            <div class="label">Today's Revenue</div>
+            <div class="value">{{ today_revenue|floatformat:2 }}</div>
+        </div>
+        <div class="kpi">
+            <div class="label">Completed Bookings</div>
+            <div class="value">{{ total_bookings }}</div>
+        </div>
+        <div class="kpi">
+            <div class="label">Total Trains</div>
+            <div class="value">{{ total_trains }}</div>
+        </div>
+    </div>
+
+    <div class="panel">
+        {% if ai_error %}
+            <h2>AI Status</h2>
+            <p>{{ ai_error }}</p>
+            <p>Check `OPENAI_API_KEY`, `OPENAI_MODEL`, internet access, and `openai` package installation.</p>
+        {% elif ai_insights %}
+            <h2>Generated Analysis</h2>
+            <pre>{{ ai_insights }}</pre>
+        {% else %}
+            <p>No insights available.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

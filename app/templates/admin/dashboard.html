@@ -1,0 +1,253 @@
+{% extends "admin/base_site.html" %}
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+        margin: 14px 0 22px;
+    }
+    .kpi-card {
+        border: 1px solid #d8dce2;
+        border-radius: 10px;
+        background: #fff;
+        padding: 14px;
+    }
+    .kpi-label {
+        color: #5f6b7a;
+        font-size: 12px;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+    .kpi-value {
+        color: #1f2a37;
+        font-size: 28px;
+        font-weight: 700;
+        line-height: 1.1;
+    }
+    .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 16px;
+    }
+    .chart-card {
+        border: 1px solid #d8dce2;
+        border-radius: 10px;
+        background: #fff;
+        padding: 14px;
+    }
+    .chart-title {
+        margin: 0 0 12px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #1f2a37;
+    }
+    .chart-wrap {
+        position: relative;
+        height: 320px;
+    }
+    .table-card {
+        margin-top: 16px;
+        border: 1px solid #d8dce2;
+        border-radius: 10px;
+        background: #fff;
+        padding: 14px;
+        overflow-x: auto;
+    }
+    .table-card table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .table-card th,
+    .table-card td {
+        border-bottom: 1px solid #eceff3;
+        padding: 10px 8px;
+        text-align: left;
+        white-space: nowrap;
+    }
+    .table-card th {
+        font-size: 12px;
+        text-transform: uppercase;
+        color: #64748b;
+        letter-spacing: .03em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <h1>Revenue Analytics Dashboard</h1>
+    <p style="margin:0 0 10px;">
+        <a class="button" href="{% url 'admin_ai_insights' %}">Open AI Insights</a>
+    </p>
+    <p style="margin:0 0 10px;color:#5f6b7a;">Only completed bookings are included in all metrics.</p>
+
+    <div class="dashboard-grid">
+        <div class="kpi-card">
+            <div class="kpi-label">Total Revenue</div>
+            <div class="kpi-value">{{ total_revenue|floatformat:2 }}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Total Bookings</div>
+            <div class="kpi-value">{{ total_bookings }}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Total Trains</div>
+            <div class="kpi-value">{{ total_trains }}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Today's Revenue</div>
+            <div class="kpi-value">{{ today_revenue|floatformat:2 }}</div>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h2 class="chart-title">Revenue per Train</h2>
+            <div class="chart-wrap"><canvas id="revenuePerTrainChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <h2 class="chart-title">Monthly Revenue Trend</h2>
+            <div class="chart-wrap"><canvas id="monthlyRevenueChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <h2 class="chart-title">Train Revenue Distribution</h2>
+            <div class="chart-wrap"><canvas id="trainRevenuePieChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <h2 class="chart-title">Daily Booking Count</h2>
+            <div class="chart-wrap"><canvas id="dailyBookingsChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="table-card">
+        <h2 class="chart-title">Revenue by Train (Table)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Train</th>
+                    <th>Revenue</th>
+                    <th>Bookings</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in revenue_per_train %}
+                <tr>
+                    <td>{{ row.train_label|default:"Unknown" }}</td>
+                    <td>{{ row.total_revenue|floatformat:2 }}</td>
+                    <td>{{ row.bookings }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3">No completed booking data found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block footer %}
+{{ block.super }}
+<script>
+    const barLabels = {{ bar_labels_json|safe }};
+    const barValues = {{ bar_values_json|safe }};
+    const lineLabels = {{ line_labels_json|safe }};
+    const lineValues = {{ line_values_json|safe }};
+    const pieLabels = {{ pie_labels_json|safe }};
+    const pieValues = {{ pie_values_json|safe }};
+    const dailyLabels = {{ daily_labels_json|safe }};
+    const dailyValues = {{ daily_values_json|safe }};
+
+    const palette = [
+        '#2563eb', '#0ea5e9', '#0891b2', '#22c55e', '#f59e0b',
+        '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#64748b'
+    ];
+
+    new Chart(document.getElementById('revenuePerTrainChart'), {
+        type: 'bar',
+        data: {
+            labels: barLabels,
+            datasets: [{
+                label: 'Revenue',
+                data: barValues,
+                backgroundColor: palette[0],
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    new Chart(document.getElementById('monthlyRevenueChart'), {
+        type: 'line',
+        data: {
+            labels: lineLabels,
+            datasets: [{
+                label: 'Monthly Revenue',
+                data: lineValues,
+                borderColor: palette[2],
+                backgroundColor: 'rgba(8, 145, 178, 0.12)',
+                fill: true,
+                tension: 0.35,
+                pointRadius: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    new Chart(document.getElementById('trainRevenuePieChart'), {
+        type: 'pie',
+        data: {
+            labels: pieLabels,
+            datasets: [{
+                data: pieValues,
+                backgroundColor: pieLabels.map((_, i) => palette[i % palette.length])
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    new Chart(document.getElementById('dailyBookingsChart'), {
+        type: 'line',
+        data: {
+            labels: dailyLabels,
+            datasets: [{
+                label: 'Completed Bookings',
+                data: dailyValues,
+                borderColor: palette[4],
+                backgroundColor: 'rgba(245, 158, 11, 0.14)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { precision: 0 }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

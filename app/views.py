@@ -2,6 +2,7 @@
 
 from django.http import  HttpResponseBadRequest
 from datetime import timezone as dt_timezone
+import re
 
 
 from django.shortcuts import render, redirect
@@ -30,7 +31,7 @@ from django.urls import reverse_lazy
 from django.contrib.messages.views import SuccessMessageMixin
 import requests
 from django.db import transaction, IntegrityError
-from django.db.models import Q, Sum
+from django.db.models import Count, Q, Sum
 from urllib.parse import urlencode
 from django.utils import timezone as dj_timezone
 
@@ -54,6 +55,21 @@ timestamp = datetime.now()
 class Home(View):
     def get(self, request):
         form = TrainForm
+        daily_departures_count = Train.objects.filter(departure_time__isnull=False).count()
+        major_stations_count = Station.objects.count()
+        booking_counts = Booking.objects.aggregate(
+            accepted=Count('id', filter=Q(status='Accepted')),
+            canceled=Count('id', filter=Q(status='Canceled')),
+        )
+        accepted_bookings = booking_counts.get('accepted') or 0
+        canceled_bookings = booking_counts.get('canceled') or 0
+        finalized_bookings = accepted_bookings + canceled_bookings
+        on_time_trips = (
+            f"{(accepted_bookings / finalized_bookings) * 100:.1f}%"
+            if finalized_bookings
+            else "N/A"
+        )
+
         timetable_trains = (
             Train.objects
             .select_related('source', 'destination')
@@ -63,6 +79,12 @@ class Home(View):
         return render(request, 'home.html', {
             'form': form,
             'timetable_trains': timetable_trains,
+            'home_stats': {
+                'daily_departures': f"{daily_departures_count}+",
+                'major_stations': major_stations_count,
+                'on_time_trips': on_time_trips,
+                'booking_access': "24/7",
+            },
         })
 
 
@@ -289,6 +311,172 @@ def seat_availability(request):
     cache_ttl = getattr(settings, "SEAT_AVAILABILITY_CACHE_TTL_SECONDS", 30)
     cache.set(cache_key, payload, timeout=cache_ttl)
     return JsonResponse(payload, status=200)
+
+
+def _find_station_by_text(raw_name):
+    token = (raw_name or "").strip()
+    if not token:
+        return None
+    return (
+        Station.objects
+        .filter(Q(name__icontains=token) | Q(code__icontains=token) | Q(place__icontains=token))
+        .order_by('name')
+        .first()
+    )
+
+
+def booking_assistant(request):
+    if request.method not in ("GET", "POST"):
+        return JsonResponse({"message": "Method not allowed."}, status=405)
+
+    user_message = ""
+    if request.method == "GET":
+        user_message = (request.GET.get("q") or "").strip()
+    else:
+        try:
+            body = json.loads(request.body or "{}")
+            user_message = (body.get("message") or "").strip()
+        except json.JSONDecodeError:
+            return JsonResponse({"message": "Invalid JSON payload."}, status=400)
+
+    if not user_message:
+        return JsonResponse({
+            "reply": "Ask me about routes, fares, or booking steps.",
+            "suggestions": [
+                "Show booking steps",
+                "What are class fares?",
+                "Trains from Nairobi to Mombasa",
+            ],
+        })
+
+    text = user_message.lower()
+
+    if ("how" in text and "book" in text) or "steps" in text or "process" in text:
+        return JsonResponse({
+            "reply": (
+                "Booking steps:\n"
+                "1) Select From, To, class type, date, and passengers on the home page.\n"
+                "2) Click Book a Train to view available trains.\n"
+                "3) Choose seats and confirm booking.\n"
+                "4) Complete payment and download your ticket."
+            ),
+            "suggestions": [
+                "What are class fares?",
+                "Show popular routes",
+            ],
+        })
+
+    if "fare" in text or "price" in text or "cost" in text:
+        classes = list(ClassType.objects.order_by('name')[:10])
+        if not classes:
+            return JsonResponse({"reply": "No class fares configured yet."})
+
+        adults = 1
+        children = 0
+        adult_match = re.search(r"(\d+)\s*adult", text)
+        child_match = re.search(r"(\d+)\s*(child|children)", text)
+        if adult_match:
+            adults = int(adult_match.group(1))
+        if child_match:
+            children = int(child_match.group(1))
+
+        selected = None
+        for cls in classes:
+            if cls.name and cls.name.lower() in text:
+                selected = cls
+                break
+        if selected is None:
+            selected = classes[0]
+
+        lines = [
+            f"- {cls.name}: adult {cls.effective_adult_price}, child {cls.effective_child_price}"
+            for cls in classes
+        ]
+        estimate = selected.calculate_total_fare(adults, children)
+        return JsonResponse({
+            "reply": (
+                "Current class fares:\n"
+                + "\n".join(lines)
+                + f"\n\nEstimated total for {adults} adult(s) and {children} child(ren) in {selected.name}: {estimate}"
+            ),
+            "suggestions": [
+                "Show booking steps",
+                "Trains from Nairobi to Mombasa",
+            ],
+        })
+
+    route_match = re.search(r"from\s+(.+?)\s+to\s+(.+)", text)
+    if route_match or "route" in text or "train" in text:
+        source = destination = None
+        if route_match:
+            source = _find_station_by_text(route_match.group(1))
+            destination = _find_station_by_text(route_match.group(2))
+
+        if source and destination:
+            trains = list(
+                Train.objects
+                .filter(source=source, destination=destination)
+                .select_related("source", "destination")
+                .order_by("departure_time", "name")[:6]
+            )
+            if not trains:
+                return JsonResponse({
+                    "reply": f"No trains found from {source.name} to {destination.name} right now.",
+                    "suggestions": ["Try another route", "Show class fares"],
+                })
+
+            train_lines = []
+            for train in trains:
+                dep = train.departure_time.strftime("%H:%M") if train.departure_time else "TBA"
+                arr = train.arrival_time.strftime("%H:%M") if train.arrival_time else "TBA"
+                train_lines.append(f"- {train.name or 'Unnamed Train'} ({dep} - {arr})")
+
+            return JsonResponse({
+                "reply": (
+                    f"Available trains from {source.name} to {destination.name}:\n"
+                    + "\n".join(train_lines)
+                    + "\n\nGo to the booking form section to pick date/class and continue."
+                ),
+                "link": "#book-train",
+                "autofill": {
+                    "source_name": source.name,
+                    "destination_name": destination.name,
+                },
+                "suggestions": [
+                    "What are class fares?",
+                    "Show booking steps",
+                ],
+            })
+
+        routes = (
+            Train.objects
+            .select_related("source", "destination")
+            .exclude(source__isnull=True)
+            .exclude(destination__isnull=True)
+            .values_list("source__name", "destination__name")
+            .distinct()[:8]
+        )
+        if routes:
+            route_lines = [f"- {src} to {dst}" for src, dst in routes]
+            return JsonResponse({
+                "reply": "Popular routes:\n" + "\n".join(route_lines) + "\n\nAsk like: Trains from Nairobi to Mombasa",
+                "suggestions": [
+                    "Trains from Nairobi to Mombasa",
+                    "What are class fares?",
+                ],
+            })
+
+    return JsonResponse({
+        "reply": (
+            "I can help with routes, fares, and booking steps.\n"
+            "Try: 'Trains from Nairobi to Mombasa', 'What are class fares?', or 'How do I book?'"
+        ),
+        "suggestions": [
+            "How do I book?",
+            "What are class fares?",
+            "Trains from Nairobi to Mombasa",
+        ],
+    })
 
 class AvailableTrain(View):
     def get(self, request):

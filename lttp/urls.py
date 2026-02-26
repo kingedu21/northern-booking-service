@@ -1,11 +1,14 @@
 from django.contrib import admin
 from django.urls import path, include
 from django.contrib.auth import views as auth_views
+from app.admin_dashboard import ai_insights_view, dashboard_view
 from app.views import CustomPasswordResetView, payment_success
 from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
+    path('admin/dashboard/', admin.site.admin_view(dashboard_view), name='admin_dashboard'),
+    path('admin/ai-insights/', admin.site.admin_view(ai_insights_view), name='admin_ai_insights'),
     path('admin/', admin.site.urls),
 
     # Include app URLs
@@ -31,6 +34,4 @@ urlpatterns = [
 
     path('success/', payment_success, name='payment_success'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-
 
