@@ -31,9 +31,9 @@ DEBUG = os.getenv("DEBUG", "False") == "True"
 
 _allowed_hosts_raw = os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost")
 ALLOWED_HOSTS = [host.strip() for host in _allowed_hosts_raw.split(",") if host.strip()]
-render_external_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME")
-if render_external_hostname:
-    ALLOWED_HOSTS.append(render_external_hostname)
+RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 ALLOWED_HOSTS = list(dict.fromkeys(ALLOWED_HOSTS))
 if DEBUG:
     for tunnel_host in [".ngrok-free.app", ".ngrok-free.dev", ".ngrok.io", ".loca.lt", ".trycloudflare.com"]:
@@ -42,9 +42,9 @@ if DEBUG:
 
 # Respect proxy/tunnel HTTPS header when present (ngrok/cloudflare/localtunnel).
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-CSRF_TRUSTED_ORIGINS = []
-if render_external_hostname:
-    CSRF_TRUSTED_ORIGINS.append(f"https://{render_external_hostname}")
+CSRF_TRUSTED_ORIGINS = ["https://*.onrender.com"]
+if RENDER_EXTERNAL_HOSTNAME:
+    CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
 
 
 # Application definition
@@ -104,7 +104,8 @@ WSGI_APPLICATION = 'lttp.wsgi.application'
 
 DATABASES = {
     "default": dj_database_url.config(
-        default=os.getenv("DATABASE_URL")
+        conn_max_age=600,
+        ssl_require=True
     )
 }
 
