@@ -5,4 +5,27 @@ pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
 python manage.py collectstatic --noinput
 python manage.py migrate
-python manage.py shell -c "import os; from django.contrib.auth import get_user_model; U=get_user_model(); u=os.getenv('DJANGO_SUPERUSER_USERNAME'); e=os.getenv('DJANGO_SUPERUSER_EMAIL'); p=os.getenv('DJANGO_SUPERUSER_PASSWORD'); (u and e and p) and (U.objects.filter(username=u).exists() or U.objects.create_superuser(u,e,p))"
+python manage.py shell -c "
+import os
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+username = os.getenv('DJANGO_SUPERUSER_USERNAME')
+email = os.getenv('DJANGO_SUPERUSER_EMAIL')
+password = os.getenv('DJANGO_SUPERUSER_PASSWORD')
+
+if username and email and password:
+    user, created = User.objects.get_or_create(
+        username=username,
+        defaults={'email': email},
+    )
+    if created:
+        user.set_password(password)
+    if not getattr(user, 'email', ''):
+        user.email = email
+    if not user.is_staff:
+        user.is_staff = True
+    if not user.is_superuser:
+        user.is_superuser = True
+    user.save()
+"
