@@ -1089,6 +1089,27 @@ class Tickets(View):
             return redirect('booking_history')
 
 
+@login_required
+def download_ticket_pdf(request, pk):
+    booking = get_object_or_404(Booking, id=pk, user=request.user)
+    payment = Payment.objects.filter(booking=booking).order_by('-id').first()
+    if booking.status != "Accepted" or not payment or (payment.status or "").strip().lower() != "paid":
+        messages.warning(request, "Ticket PDF is available only after successful payment.")
+        return redirect('booking_detail', pk=booking.id)
+
+    _ensure_passenger_tickets(booking)
+    ticket_file = generate_ticket_pdf(booking)
+    if not ticket_file or not os.path.exists(ticket_file):
+        return HttpResponse("Ticket file could not be generated.", status=500)
+
+    return FileResponse(
+        open(ticket_file, "rb"),
+        as_attachment=True,
+        filename=f"ticket_{booking.id}.pdf",
+        content_type="application/pdf",
+    )
+
+
 # cancel booking view
 
 class CancelBooking(View):

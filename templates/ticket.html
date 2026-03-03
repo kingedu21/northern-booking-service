@@ -4,7 +4,7 @@
     <div class="row pt-4">
         <div class="col-lg-12 d-print-none mb-3">
             <button class="btn btn-success" onclick="printTicket()">Print Ticket</button>
-            <a href="{{ ticket_file_url }}" class="btn btn-primary" download>Download PDF</a>
+            <a href="{% url 'download_ticket_pdf' booking.id %}" class="btn btn-primary">Download PDF</a>
         </div>
 
         <div class="col-lg-10 mx-auto" id="ticket">

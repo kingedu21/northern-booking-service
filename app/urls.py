@@ -4,7 +4,7 @@ from .views import (
     BookingDetails, Tickets, CancelBooking, signup, user_login, logout,
     Contact, Feedbacks, VerifyTicket, Profile,
     process_payment, stk_push, mpesa_callback, mpesa_status, seat_availability,
-    booking_assistant,
+    booking_assistant, download_ticket_pdf,
 )
 
 urlpatterns = [
@@ -15,6 +15,7 @@ urlpatterns = [
     path('booking_history/', BookingHistory.as_view(), name='booking_history'),
     path('booking_detail/<int:pk>/', BookingDetails.as_view(), name='booking_detail'),
     path('tickets/<int:pk>/', Tickets.as_view(), name='tickets'),
+    path('tickets/<int:pk>/download/', download_ticket_pdf, name='download_ticket_pdf'),
     path('cancel_booking/', CancelBooking.as_view(), name='cancel_booking'),
     path('signup/', signup, name='signup'),
     path('login/', user_login, name='login'),
