@@ -66,7 +66,7 @@
 
                 {% if user.is_superuser %}
                 <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                    <a class="dropdown-item" href="admin/">Admin Panel</a>
+                    <a class="dropdown-item" href="{% url 'admin:index' %}">Admin Panel</a>
                 
                     <a class="dropdown-item" href="{% url 'profile' %}">Profile</a>
                     <a class="dropdown-item" href="{% url 'booking_history' %}">Booking History</a>
@@ -146,5 +146,4 @@
         crossorigin="anonymous"></script>
 
 <script src="/static/js/style.js" crossorigin="anonymous"></script>
-
 
