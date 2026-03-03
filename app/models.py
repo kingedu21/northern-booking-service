@@ -206,6 +206,41 @@ class Booking(models.Model):
         return f"Booking {self.id} by {self.user.username if self.user else 'Anonymous'}"
 
 
+class Passenger(models.Model):
+    class GenderChoices(models.TextChoices):
+        MALE = "Male", "Male"
+        FEMALE = "Female", "Female"
+        OTHER = "Other", "Other"
+
+    booking = models.ForeignKey(
+        Booking,
+        on_delete=models.CASCADE,
+        related_name="passengers",
+    )
+    full_name = models.CharField(max_length=120)
+    gender = models.CharField(
+        max_length=10,
+        choices=GenderChoices.choices,
+        default=GenderChoices.OTHER,
+    )
+    age = models.PositiveIntegerField(null=True, blank=True)
+    seat_number = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, blank=True, null=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["booking", "seat_number"],
+                name="unique_booking_passenger_seat",
+            )
+        ]
+        ordering = ["seat_number", "id"]
+
+    def __str__(self):
+        return f"{self.full_name} ({self.booking_id}) - Seat {self.seat_number}"
+
+
 
 
 
@@ -262,6 +297,8 @@ class Payment(models.Model):
 
 class Ticket(models.Model):
     booking = models.ForeignKey('Booking', on_delete=models.CASCADE)
+    passenger = models.ForeignKey('Passenger', on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets')
+    ticket_uid = models.CharField(max_length=32, unique=True, null=True, blank=True, db_index=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     phone = models.CharField(max_length=20)
     source = models.CharField(max_length=100)
@@ -270,12 +307,13 @@ class Ticket(models.Model):
     travel_date = models.DateField()
     train_name = models.CharField(max_length=100)
     class_type = models.CharField(max_length=50)
+    seat_number = models.PositiveIntegerField(null=True, blank=True)
     fare = models.CharField(max_length=10)
     created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, blank=True, null=True)
 
     def __str__(self):
-        return f"Ticket for Booking {self.booking.id}"
+        return f"Ticket {self.ticket_uid or self.id} for Booking {self.booking.id}"
 
 
 

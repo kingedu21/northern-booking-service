@@ -91,7 +91,7 @@
                 <h5>Personal Info</h5>
                 <p class="label-muted mb-1">Booking ID</p>
                 <input class="form-control mb-3" type="text" id="booking_id_display" value="{{ booking.id }}" readonly>
-                <p class="label-muted">Passenger Name</p>
+                <p class="label-muted">Primary Booker</p>
                 <p class="value-main">{{ user.first_name }} {{ user.last_name }}</p>
                 <label for="email" class="label-muted">Email</label>
                 <input class="form-control mb-3" type="email" name="email" id="email" value="{{ user.email }}" required>
@@ -117,6 +117,33 @@
                 <h6>Child Fare (each): {{ child_fare }}</h6>
                 <h6>Legacy Base Fare: {{ fare_each.price }}<input type="hidden" name="fpp" value="{{ fare_each.price }}"></h6>
                 <h6 class="text-success font-weight-bold">Total Fare: {{ total_fare }}<input type="hidden" name="total_fare" id="total_fare" value="{{ total_fare }}"></h6>
+            </div>
+        </div>
+
+        <div class="col-lg-12 mb-3">
+            <div class="booking-card">
+                <h5>Passenger Details</h5>
+                <p class="label-muted">Provide one passenger per seat.</p>
+                <div class="row">
+                    {% for passenger in passengers %}
+                    <div class="col-lg-6 mb-3 passenger-form-row">
+                        <div class="p-3" style="border:1px solid rgba(255,255,255,0.15);border-radius:10px;">
+                            <p class="label-muted mb-2">Passenger {{ forloop.counter }} | Seat {{ passenger.seat_number }}</p>
+                            <input type="hidden" name="passenger_seat[]" value="{{ passenger.seat_number }}" class="passenger-seat-input">
+                            <label class="label-muted">Full Name</label>
+                            <input class="form-control mb-2 passenger-name-input" type="text" name="passenger_name[]" value="{{ passenger.full_name }}" required>
+                            <label class="label-muted">Gender</label>
+                            <select class="form-control mb-2 passenger-gender-input" name="passenger_gender[]" required>
+                                <option value="Male" {% if passenger.gender == 'Male' %}selected{% endif %}>Male</option>
+                                <option value="Female" {% if passenger.gender == 'Female' %}selected{% endif %}>Female</option>
+                                <option value="Other" {% if passenger.gender == 'Other' %}selected{% endif %}>Other</option>
+                            </select>
+                            <label class="label-muted">Age (optional)</label>
+                            <input class="form-control passenger-age-input" type="number" min="0" max="120" name="passenger_age[]" value="{{ passenger.age|default:'' }}">
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
 
@@ -190,6 +217,11 @@ function handlePayment() {
         return;
     }
 
+    const passengerPayload = collectPassengerPayload();
+    if (!passengerPayload) {
+        return;
+    }
+
     if (paymentType === "rocket") {
         const payBtn = document.getElementById('payNowBtn');
         payBtn.disabled = true;
@@ -204,7 +236,8 @@ function handlePayment() {
             body: JSON.stringify({
                 phone: phone,
                 amount: amount,
-                booking_id: bookingId
+                booking_id: bookingId,
+                passengers: passengerPayload
             })
         })
         .then(response => response.json())
@@ -228,6 +261,59 @@ function handlePayment() {
     } else {
         document.getElementById('payment-form').submit();
     }
+}
+
+function collectPassengerPayload() {
+    const nameInputs = document.querySelectorAll('.passenger-name-input');
+    const genderInputs = document.querySelectorAll('.passenger-gender-input');
+    const ageInputs = document.querySelectorAll('.passenger-age-input');
+    const seatInputs = document.querySelectorAll('.passenger-seat-input');
+
+    if (!(nameInputs.length && nameInputs.length === genderInputs.length && nameInputs.length === seatInputs.length)) {
+        Swal.fire('Error', 'Passenger details are incomplete.', 'error');
+        return null;
+    }
+
+    const payload = [];
+    const seenSeats = new Set();
+    for (let i = 0; i < nameInputs.length; i++) {
+        const fullName = (nameInputs[i].value || '').trim();
+        const gender = (genderInputs[i].value || '').trim();
+        const ageRaw = (ageInputs[i]?.value || '').trim();
+        const seatNumber = Number(seatInputs[i].value);
+
+        if (!fullName) {
+            Swal.fire('Error', `Passenger ${i + 1} name is required.`, 'error');
+            return null;
+        }
+        if (!['Male', 'Female', 'Other'].includes(gender)) {
+            Swal.fire('Error', `Passenger ${i + 1} gender is invalid.`, 'error');
+            return null;
+        }
+        if (!Number.isInteger(seatNumber) || seatNumber < 1) {
+            Swal.fire('Error', `Passenger ${i + 1} seat number is invalid.`, 'error');
+            return null;
+        }
+        if (seenSeats.has(seatNumber)) {
+            Swal.fire('Error', 'Duplicate seat numbers detected in passenger details.', 'error');
+            return null;
+        }
+        seenSeats.add(seatNumber);
+
+        if (ageRaw && (!Number.isInteger(Number(ageRaw)) || Number(ageRaw) < 0 || Number(ageRaw) > 120)) {
+            Swal.fire('Error', `Passenger ${i + 1} age must be between 0 and 120.`, 'error');
+            return null;
+        }
+
+        payload.push({
+            full_name: fullName,
+            gender: gender,
+            age: ageRaw ? Number(ageRaw) : null,
+            seat_number: seatNumber
+        });
+    }
+
+    return payload;
 }
 
 function pollMpesaStatus(bookingId) {

@@ -11,6 +11,7 @@ from .models import (
     Feedback,
     MpesaTransaction,
     Payment,
+    Passenger,
     SeatAllocation,
     Station,
     Ticket,
@@ -57,9 +58,14 @@ class TrainAdmin(admin.ModelAdmin):
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user', 'train_name', 'source', 'destination', 'status', 'travel_date', 'selected_seats', 'total_fare']
+    list_display = ['id', 'user', 'train_name', 'source', 'destination', 'status', 'travel_date', 'selected_seats', 'passenger_count', 'total_fare']
     list_filter = ['status', 'travel_date']
     search_fields = ['user__username', 'train_name', 'source', 'destination']
+
+    def passenger_count(self, obj):
+        return obj.passengers.count()
+
+    passenger_count.short_description = 'Passengers'
 
 
 @admin.register(BillingInfo)
@@ -79,7 +85,14 @@ class PaymentAdmin(admin.ModelAdmin):
 
 @admin.register(Ticket)
 class TicketAdmin(admin.ModelAdmin):
-    list_display = ['id', 'booking', 'user', 'train_name', 'source', 'destination', 'travel_date', 'class_type', 'fare']
+    list_display = ['id', 'ticket_uid', 'booking', 'passenger', 'seat_number', 'user', 'train_name', 'source', 'destination', 'travel_date', 'class_type', 'fare']
+
+
+@admin.register(Passenger)
+class PassengerAdmin(admin.ModelAdmin):
+    list_display = ['id', 'booking', 'full_name', 'gender', 'age', 'seat_number']
+    list_filter = ['gender', 'booking__travel_date']
+    search_fields = ['full_name', 'booking__id', 'booking__user__username']
 
 
 @admin.register(MpesaTransaction)

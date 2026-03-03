@@ -3,11 +3,12 @@
 from django.http import  HttpResponseBadRequest
 from datetime import timezone as dt_timezone
 import re
+import uuid
 
 
 from django.shortcuts import render, redirect
 from django.views import View
-from app.models import CustomUser, Feedback, ContactForm, ContactNumber, Train, Station, ClassType, Booking, BookingDetail, BillingInfo, Payment, Ticket, SeatAllocation, TrainClassCapacity
+from app.models import CustomUser, Feedback, ContactForm, ContactNumber, Train, Station, ClassType, Booking, BookingDetail, BillingInfo, Payment, Ticket, Passenger, SeatAllocation, TrainClassCapacity
 from django.http import HttpResponse
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
@@ -175,6 +176,180 @@ def parse_selected_seats(raw_values):
             deduped.append(seat)
             seen.add(seat)
     return deduped
+
+
+def _booking_selected_seats(booking):
+    seats = parse_selected_seats([booking.selected_seats or ""])
+    if seats:
+        return seats
+    total = int((booking.passengers_adult or 0) + (booking.passengers_child or 0))
+    return list(range(1, total + 1))
+
+
+def _default_passenger_payloads(booking):
+    seats = _booking_selected_seats(booking)
+    name_base = (booking.user.get_full_name() or "").strip() or (booking.user.username or "").strip()
+    default_name = name_base or f"Passenger {booking.id}"
+    return [
+        {
+            "full_name": default_name if idx == 0 else f"{default_name} {idx + 1}",
+            "gender": Passenger.GenderChoices.OTHER,
+            "age": None,
+            "seat_number": seat_number,
+        }
+        for idx, seat_number in enumerate(seats)
+    ]
+
+
+def _sanitize_passenger_rows(raw_rows, allowed_seats):
+    allowed_set = set(int(seat) for seat in allowed_seats)
+    rows = []
+    seen_seats = set()
+    for row in raw_rows:
+        try:
+            seat_number = int(row.get("seat_number"))
+        except (TypeError, ValueError):
+            raise ValueError("Invalid seat number in passenger details.")
+        if seat_number not in allowed_set:
+            raise ValueError(f"Seat {seat_number} does not belong to this booking.")
+        if seat_number in seen_seats:
+            raise ValueError("Duplicate seat assigned in passenger details.")
+        seen_seats.add(seat_number)
+
+        full_name = (row.get("full_name") or "").strip()
+        if not full_name:
+            raise ValueError("Passenger name is required for all selected seats.")
+
+        gender = (row.get("gender") or "").strip()
+        if gender not in Passenger.GenderChoices.values:
+            raise ValueError("Invalid passenger gender value.")
+
+        age_raw = (row.get("age") or "").strip() if isinstance(row.get("age"), str) else row.get("age")
+        age = None
+        if age_raw not in (None, ""):
+            try:
+                age = int(age_raw)
+            except (TypeError, ValueError):
+                raise ValueError("Passenger age must be a number.")
+            if age < 0 or age > 120:
+                raise ValueError("Passenger age must be between 0 and 120.")
+
+        rows.append(
+            {
+                "full_name": full_name,
+                "gender": gender,
+                "age": age,
+                "seat_number": seat_number,
+            }
+        )
+
+    if len(rows) != len(allowed_set):
+        raise ValueError("Passenger count must match selected seats.")
+    return sorted(rows, key=lambda item: item["seat_number"])
+
+
+def _collect_passenger_rows_from_request(request, seats):
+    names = request.POST.getlist("passenger_name[]")
+    genders = request.POST.getlist("passenger_gender[]")
+    ages = request.POST.getlist("passenger_age[]")
+    seat_values = request.POST.getlist("passenger_seat[]")
+    if not any([names, genders, ages, seat_values]):
+        return None
+    if not (len(names) == len(genders) == len(ages) == len(seat_values) == len(seats)):
+        raise ValueError("Passenger details are incomplete.")
+    raw_rows = [
+        {
+            "full_name": names[idx],
+            "gender": genders[idx],
+            "age": ages[idx],
+            "seat_number": seat_values[idx],
+        }
+        for idx in range(len(seat_values))
+    ]
+    return _sanitize_passenger_rows(raw_rows, seats)
+
+
+def _upsert_booking_passengers(booking, rows=None):
+    seats = _booking_selected_seats(booking)
+    payloads = rows or _default_passenger_payloads(booking)
+    cleaned_rows = _sanitize_passenger_rows(payloads, seats)
+    existing_by_seat = {
+        passenger.seat_number: passenger
+        for passenger in Passenger.objects.filter(booking=booking)
+    }
+    for row in cleaned_rows:
+        passenger = existing_by_seat.get(row["seat_number"])
+        if passenger:
+            Passenger.objects.filter(pk=passenger.pk).update(
+                full_name=row["full_name"],
+                gender=row["gender"],
+                age=row["age"],
+            )
+        else:
+            Passenger.objects.create(booking=booking, **row)
+
+    extra_seats = set(existing_by_seat.keys()) - {row["seat_number"] for row in cleaned_rows}
+    if extra_seats:
+        Passenger.objects.filter(booking=booking, seat_number__in=extra_seats).delete()
+    return list(Passenger.objects.filter(booking=booking).order_by("seat_number", "id"))
+
+
+def _generate_unique_ticket_uid():
+    for _ in range(10):
+        candidate = uuid.uuid4().hex[:12].upper()
+        if not Ticket.objects.filter(ticket_uid=candidate).exists():
+            return candidate
+    return uuid.uuid4().hex.upper()
+
+
+def _ensure_passenger_tickets(booking):
+    passengers = list(Passenger.objects.filter(booking=booking).order_by("seat_number", "id"))
+    if not passengers:
+        passengers = _upsert_booking_passengers(booking)
+
+    payment = Payment.objects.filter(booking=booking).order_by("-id").first()
+    phone_value = (
+        (payment.phone if payment else None)
+        or getattr(booking.user, "phone", "")
+        or ""
+    )
+    class_type_value = booking.class_type.name if booking.class_type else ""
+    passenger_count = max(len(passengers), 1)
+    total_fare_value = booking.total_fare or 0
+    try:
+        fare_per_passenger = total_fare_value / passenger_count
+    except Exception:
+        fare_per_passenger = total_fare_value
+
+    ticket_ids_to_keep = []
+    for passenger in passengers:
+        ticket, _ = Ticket.objects.update_or_create(
+            booking=booking,
+            passenger=passenger,
+            defaults={
+                "user": booking.user,
+                "phone": str(phone_value),
+                "source": booking.source or "",
+                "destination": booking.destination or "",
+                "departure": booking.departure_time or "",
+                "travel_date": booking.travel_date,
+                "train_name": booking.train_name or "",
+                "class_type": class_type_value,
+                "seat_number": passenger.seat_number,
+                "fare": str(fare_per_passenger),
+            },
+        )
+        if not ticket.ticket_uid:
+            ticket.ticket_uid = _generate_unique_ticket_uid()
+            ticket.save(update_fields=["ticket_uid", "updated_at"])
+        ticket_ids_to_keep.append(ticket.id)
+
+    Ticket.objects.filter(booking=booking).exclude(id__in=ticket_ids_to_keep).delete()
+    return list(
+        Ticket.objects.filter(booking=booking)
+        .select_related("passenger")
+        .order_by("seat_number", "id")
+    )
 
 
 def _cleanup_expired_unpaid_bookings():
@@ -710,6 +885,7 @@ class Bookings(View):
                                         for seat in selected_seats
                                     ]
                                 )
+                                _upsert_booking_passengers(booking)
                         except IntegrityError:
                             conflicting = set(
                                 SeatAllocation.objects
@@ -734,6 +910,7 @@ class Bookings(View):
 
                     _bump_availability_version(train_obj.id, fare_each.id, date)
 
+                    passengers = list(booking.passengers.order_by("seat_number", "id"))
                     return render(request, 'booking.html', {
                         'booking': booking,
                         'train': train,
@@ -751,6 +928,7 @@ class Bookings(View):
                         'adult_fare': fare_each.effective_adult_price,
                         'child_fare': fare_each.effective_child_price,
                         'selected_seats': booking.selected_seats,
+                        'passengers': passengers,
                     })
                 else:
                     return redirect_back_to_search(f"Sorry! Only {available_seat} seat(s) available. Please choose from updated availability.")
@@ -770,6 +948,9 @@ from .models import Booking, ClassType
 def confirm_booking(request, booking_id):
     booking = get_object_or_404(Booking, id=booking_id, user=request.user)
     fare_each = booking.class_type
+    passengers = list(booking.passengers.order_by("seat_number", "id"))
+    if not passengers:
+        passengers = _upsert_booking_passengers(booking)
     
     context = {
         'booking': booking,
@@ -788,7 +969,8 @@ def confirm_booking(request, booking_id):
         'adult_fare': fare_each.effective_adult_price if fare_each else None,
         'child_fare': fare_each.effective_child_price if fare_each else None,
         'selected_seats': booking.selected_seats,
-        'total_fare': booking.total_fare
+        'total_fare': booking.total_fare,
+        'passengers': passengers,
     }
     return render(request, 'booking.html', context)
 
@@ -834,6 +1016,7 @@ class BookingDetails(View):
             'booking_detail': booking_detail,
             'billing': billing,
             'payment': payment,
+            'passengers': booking.passengers.order_by("seat_number", "id"),
             'passenger_total': passenger_total,
             'fare_each': fare_each,
             'adult_fare': adult_fare,
@@ -853,24 +1036,21 @@ class Tickets(View):
 
         try:
             booking = get_object_or_404(Booking, id=pk, user=request.user)
-            tickets = Ticket.objects.filter(booking=booking)
             payment = Payment.objects.filter(booking=booking).order_by('-id').first()
             if booking.status != "Canceled" and payment and (payment.status or "").strip().lower() == "paid":
                 _mark_booking_paid(booking, payment_method=(payment.pay_method or "MPesa"))
             if booking.status != "Accepted" or not payment or (payment.status or "").strip().lower() != "paid":
                 messages.warning(request, "Ticket is available only after successful payment.")
                 return redirect('booking_detail', pk=booking.id)
+            tickets = _ensure_passenger_tickets(booking)
             billing = BillingInfo.objects.filter(booking=booking).order_by('-id').first()
             booking_detail = BookingDetail.objects.filter(booking=booking).order_by('-id').first()
             print_param = request.GET.get('print', False)
 
-            passenger_total = (booking.passengers_adult or 0) + (booking.passengers_child or 0)
+            passenger_total = len(tickets)
             generate_ticket_pdf(booking)
             ticket_file_url = request.build_absolute_uri(f'/media/tickets/ticket_{booking.id}.pdf')
-            full_name = (booking.user.get_full_name() or '').strip()
-            username_value = (booking.user.username or '').strip()
             user_email = (booking.user.email or '').strip()
-            passenger_name = full_name or username_value or user_email or f"Passenger {booking.id}"
             email_value = billing.email if billing else user_email
             phone_value = (
                 (payment.phone if payment else None)
@@ -893,7 +1073,6 @@ class Tickets(View):
                 'booking_detail': booking_detail,
                 'ticket_file_url': ticket_file_url,
                 'passenger_total': passenger_total,
-                'passenger_name': passenger_name,
                 'email_value': email_value,
                 'phone_value': phone_value,
                 'class_type_value': class_type_value,
@@ -1120,11 +1299,19 @@ class VerifyTicket(View):
             ticket = None
             booking = None
 
-            # Primary check: explicit Ticket record by id.
+            # Primary check: explicit Ticket record by unique ticket UID.
             if query_tid:
                 ticket = Ticket.objects.filter(
-                    id=query_tid
+                    ticket_uid__iexact=query_tid
                 ).first()
+                if ticket:
+                    verified = True
+                    query_train = ticket.train_name
+                    query_date = str(ticket.travel_date)
+
+            # Secondary check: legacy numeric Ticket primary key.
+            if not verified and query_tid.isdigit():
+                ticket = Ticket.objects.filter(id=int(query_tid)).first()
                 if ticket:
                     verified = True
                     query_train = ticket.train_name
@@ -1526,6 +1713,13 @@ def process_payment(request):
     if booking.status == 'Canceled':
         return JsonResponse({'message': 'This booking is canceled and cannot be paid.'}, status=400)
 
+    try:
+        passenger_rows = _collect_passenger_rows_from_request(request, _booking_selected_seats(booking))
+    except ValueError as exc:
+        return JsonResponse({'message': str(exc)}, status=400)
+    if passenger_rows:
+        _upsert_booking_passengers(booking, passenger_rows)
+
     transaction = MpesaTransaction.objects.filter(
         booking=booking,
         trx_id__iexact=payment_code
@@ -1569,13 +1763,14 @@ def process_payment(request):
     )
 
     _mark_booking_paid(booking, payment_method="MPesa")
+    _ensure_passenger_tickets(booking)
 
     # Update phone if missing
     if transaction.phone_number and not getattr(booking.user, 'phone', None):
         booking.user.phone = transaction.phone_number
         booking.user.save()
 
-    # Generate ticket PDF
+    # Generate ticket PDF (contains all passenger tickets)
     generate_ticket_pdf(booking)
 
     return JsonResponse(
@@ -1621,6 +1816,8 @@ def mpesa_status(request):
             }
         )
         _mark_booking_paid(booking, payment_method="MPesa")
+        _ensure_passenger_tickets(booking)
+        generate_ticket_pdf(booking)
         return JsonResponse(
             {
                 'status': 'success',
@@ -1669,6 +1866,7 @@ def mpesa_status(request):
                         }
                     )
                     _mark_booking_paid(booking, payment_method="MPesa")
+                    _ensure_passenger_tickets(booking)
                     generate_ticket_pdf(booking)
                     return JsonResponse(
                         {
@@ -1835,6 +2033,18 @@ def stk_push(request):
                 booking = Booking.objects.get(id=booking_id)
             except Booking.DoesNotExist:
                 return JsonResponse({'status': 'error', 'message': 'Invalid booking ID'}, status=404)
+            if booking.user != request.user:
+                return JsonResponse({'status': 'error', 'message': 'This booking does not belong to you.'}, status=403)
+
+            passenger_rows = data.get("passengers") or []
+            if passenger_rows:
+                try:
+                    cleaned_rows = _sanitize_passenger_rows(passenger_rows, _booking_selected_seats(booking))
+                except ValueError as exc:
+                    return JsonResponse({'status': 'error', 'message': str(exc)}, status=400)
+                _upsert_booking_passengers(booking, cleaned_rows)
+            elif not booking.passengers.exists():
+                _upsert_booking_passengers(booking)
 
             existing_payment = Payment.objects.filter(
                 booking=booking,
@@ -2096,6 +2306,7 @@ def mpesa_callback(request):
                 }
             )
             _mark_booking_paid(mpesa_transaction.booking, payment_method="MPesa")
+            _ensure_passenger_tickets(mpesa_transaction.booking)
             # Ensure ticket PDF is generated
             generate_ticket_pdf(mpesa_transaction.booking)
             print(f"[CALLBACK] Payment & Ticket saved for Booking ID: {mpesa_transaction.booking.id}")
