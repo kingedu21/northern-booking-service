@@ -6,7 +6,7 @@ pip install -r requirements.txt
 python manage.py collectstatic --noinput
 python manage.py migrate
 if [ "${IMPORT_FIXTURE_ON_DEPLOY:-False}" = "True" ] && [ -f data/render_seed.json ]; then
-  if python manage.py shell -c "from app.models import Station; import sys; sys.exit(0 if Station.objects.exists() else 1)"; then
+  if python manage.py shell -c "from app.models import CustomUser, Station, Train, Booking; import sys; has_data = CustomUser.objects.exists() or Station.objects.exists() or Train.objects.exists() or Booking.objects.exists(); sys.exit(0 if has_data else 1)"; then
     echo "Seed data already present, skipping fixture import."
   else
     python manage.py loaddata data/render_seed.json
