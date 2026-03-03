@@ -5,6 +5,13 @@ pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
 python manage.py collectstatic --noinput
 python manage.py migrate
+if [ "${IMPORT_FIXTURE_ON_DEPLOY:-False}" = "True" ] && [ -f data/render_seed.json ]; then
+  if python manage.py shell -c "from app.models import Station; import sys; sys.exit(0 if Station.objects.exists() else 1)"; then
+    echo "Seed data already present, skipping fixture import."
+  else
+    python manage.py loaddata data/render_seed.json
+  fi
+fi
 python manage.py shell -c "
 import os
 from django.contrib.auth import get_user_model

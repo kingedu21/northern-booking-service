@@ -1,0 +1,904 @@
+[
+{
+  "model": "app.customuser",
+  "fields": {
+    "password": "pbkdf2_sha256$320000$5Kzf8RRZAqiSh937AG4C1x$5LknzECfhdbKIsehwcqg3qv69Uun09/4SumcInJSw+Q=",
+    "last_login": "2026-02-26T20:35:28.062Z",
+    "is_superuser": true,
+    "username": "kelvin",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2026-02-24T16:10:35.074Z",
+    "first_name": "Unknown",
+    "last_name": "Unknown",
+    "email": "kelvin1010@gmail.com",
+    "phone": null,
+    "photo": "",
+    "created_at": "2026-02-24T16:10:35.585Z",
+    "updated_at": "2026-02-24T16:10:35.585Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "app.customuser",
+  "fields": {
+    "password": "pbkdf2_sha256$320000$AGxDuuVAzNO8RkvNQQVbig$mYjHSWWqzb/xK9Rlj+PD4dCABIKdkqJ6gnAO6dWI9Ow=",
+    "last_login": "2026-02-26T20:42:38.532Z",
+    "is_superuser": false,
+    "username": "hr",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-02-24T20:46:57.009Z",
+    "first_name": "edward",
+    "last_name": "maina",
+    "email": "mainaedward817@gmail.com",
+    "phone": "0115259521",
+    "photo": "",
+    "created_at": "2026-02-24T20:46:57.418Z",
+    "updated_at": "2026-02-24T20:46:57.421Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "app.station",
+  "pk": 1,
+  "fields": {
+    "name": "nairobi",
+    "place": "nairobi",
+    "code": "001",
+    "created_at": "2026-02-24T20:28:04.087Z"
+  }
+},
+{
+  "model": "app.station",
+  "pk": 2,
+  "fields": {
+    "name": "mombasa",
+    "place": "mombasa",
+    "code": "002",
+    "created_at": "2026-02-24T20:28:20.025Z"
+  }
+},
+{
+  "model": "app.station",
+  "pk": 3,
+  "fields": {
+    "name": "naivasha",
+    "place": "naivasha",
+    "code": "003",
+    "created_at": "2026-02-24T20:28:41.939Z"
+  }
+},
+{
+  "model": "app.station",
+  "pk": 4,
+  "fields": {
+    "name": "laikipia",
+    "place": "laikipia",
+    "code": "004",
+    "created_at": "2026-02-24T20:28:56.633Z"
+  }
+},
+{
+  "model": "app.station",
+  "pk": 5,
+  "fields": {
+    "name": "kitale",
+    "place": "kitale",
+    "code": "005",
+    "created_at": "2026-02-24T20:29:14.940Z"
+  }
+},
+{
+  "model": "app.station",
+  "pk": 6,
+  "fields": {
+    "name": "kitui",
+    "place": "kitui",
+    "code": "006",
+    "created_at": "2026-02-24T20:29:34.049Z"
+  }
+},
+{
+  "model": "app.station",
+  "pk": 7,
+  "fields": {
+    "name": "busia",
+    "place": "busia",
+    "code": "007",
+    "created_at": "2026-02-24T20:30:33.218Z"
+  }
+},
+{
+  "model": "app.station",
+  "pk": 8,
+  "fields": {
+    "name": "kajiado",
+    "place": "loitoktok",
+    "code": "008",
+    "created_at": "2026-02-24T20:30:59.402Z"
+  }
+},
+{
+  "model": "app.classtype",
+  "pk": 1,
+  "fields": {
+    "name": "Executive",
+    "price": "2000.00",
+    "adult_price": "2000.00",
+    "child_price": "1000.00",
+    "created_at": "2026-02-24T20:25:22.396Z",
+    "updated_at": "2026-02-24T20:25:22.396Z"
+  }
+},
+{
+  "model": "app.classtype",
+  "pk": 2,
+  "fields": {
+    "name": "commercial",
+    "price": "1000.00",
+    "adult_price": "1000.00",
+    "child_price": "500.00",
+    "created_at": "2026-02-24T20:25:47.725Z",
+    "updated_at": "2026-02-24T20:25:47.725Z"
+  }
+},
+{
+  "model": "app.classtype",
+  "pk": 3,
+  "fields": {
+    "name": "business",
+    "price": "1.00",
+    "adult_price": "1.00",
+    "child_price": "1.00",
+    "created_at": "2026-02-24T20:26:08.641Z",
+    "updated_at": "2026-02-24T20:26:08.641Z"
+  }
+},
+{
+  "model": "app.classtype",
+  "pk": 4,
+  "fields": {
+    "name": "vip",
+    "price": "4000.00",
+    "adult_price": "4000.00",
+    "child_price": "2000.00",
+    "created_at": "2026-02-24T20:26:43.487Z",
+    "updated_at": "2026-02-24T20:26:43.487Z"
+  }
+},
+{
+  "model": "app.train",
+  "pk": 1,
+  "fields": {
+    "name": "madaraka express",
+    "nos": 160,
+    "source": 1,
+    "destination": 2,
+    "departure_time": "06:00:00",
+    "arrival_time": "12:00:00",
+    "capacity_group": "1a",
+    "created_at": "2026-02-24T20:32:04.346Z",
+    "updated_at": "2026-02-24T22:11:11.353Z",
+    "class_type": [
+      1,
+      2,
+      3,
+      4
+    ]
+  }
+},
+{
+  "model": "app.train",
+  "pk": 2,
+  "fields": {
+    "name": "madaraka express",
+    "nos": 160,
+    "source": 2,
+    "destination": 1,
+    "departure_time": "18:00:00",
+    "arrival_time": "00:00:00",
+    "capacity_group": "1a",
+    "created_at": "2026-02-24T20:33:18.801Z",
+    "updated_at": "2026-02-24T22:10:57.958Z",
+    "class_type": [
+      1,
+      2,
+      3,
+      4
+    ]
+  }
+},
+{
+  "model": "app.train",
+  "pk": 3,
+  "fields": {
+    "name": "london",
+    "nos": 160,
+    "source": 1,
+    "destination": 3,
+    "departure_time": "18:00:00",
+    "arrival_time": "23:33:40",
+    "capacity_group": "2d",
+    "created_at": "2026-02-24T20:34:00.324Z",
+    "updated_at": "2026-02-24T22:11:36.738Z",
+    "class_type": [
+      1,
+      2,
+      3,
+      4
+    ]
+  }
+},
+{
+  "model": "app.train",
+  "pk": 4,
+  "fields": {
+    "name": "london",
+    "nos": 160,
+    "source": 3,
+    "destination": 4,
+    "departure_time": "06:00:00",
+    "arrival_time": "12:00:00",
+    "capacity_group": "2d",
+    "created_at": "2026-02-24T20:34:31.389Z",
+    "updated_at": "2026-02-24T22:11:24.380Z",
+    "class_type": [
+      1,
+      2,
+      3,
+      4
+    ]
+  }
+},
+{
+  "model": "app.train",
+  "pk": 5,
+  "fields": {
+    "name": "safari",
+    "nos": 140,
+    "source": 2,
+    "destination": 8,
+    "departure_time": "18:00:00",
+    "arrival_time": "20:00:00",
+    "capacity_group": null,
+    "created_at": "2026-02-24T20:35:40.039Z",
+    "updated_at": "2026-02-24T20:40:03.529Z",
+    "class_type": [
+      1,
+      2,
+      3,
+      4
+    ]
+  }
+},
+{
+  "model": "app.train",
+  "pk": 6,
+  "fields": {
+    "name": "adventure",
+    "nos": 160,
+    "source": 2,
+    "destination": 7,
+    "departure_time": "06:00:00",
+    "arrival_time": "20:00:00",
+    "capacity_group": null,
+    "created_at": "2026-02-24T20:36:21.998Z",
+    "updated_at": "2026-02-24T20:39:19.925Z",
+    "class_type": [
+      1,
+      2,
+      3,
+      4
+    ]
+  }
+},
+{
+  "model": "app.train",
+  "pk": 7,
+  "fields": {
+    "name": "money",
+    "nos": 150,
+    "source": 1,
+    "destination": 6,
+    "departure_time": "06:00:00",
+    "arrival_time": "12:00:00",
+    "capacity_group": null,
+    "created_at": "2026-02-24T20:36:55.616Z",
+    "updated_at": "2026-02-24T20:39:51.524Z",
+    "class_type": [
+      1,
+      2,
+      3,
+      4
+    ]
+  }
+},
+{
+  "model": "app.trainclasscapacity",
+  "pk": 1,
+  "fields": {
+    "train": 6,
+    "class_type": 1,
+    "seat_count": 40,
+    "created_at": "2026-02-24T20:37:36.181Z",
+    "updated_at": "2026-02-24T20:37:36.181Z"
+  }
+},
+{
+  "model": "app.trainclasscapacity",
+  "pk": 2,
+  "fields": {
+    "train": 6,
+    "class_type": 2,
+    "seat_count": 30,
+    "created_at": "2026-02-24T20:37:47.288Z",
+    "updated_at": "2026-02-24T20:37:47.288Z"
+  }
+},
+{
+  "model": "app.trainclasscapacity",
+  "pk": 3,
+  "fields": {
+    "train": 6,
+    "class_type": 3,
+    "seat_count": 50,
+    "created_at": "2026-02-24T20:38:02.884Z",
+    "updated_at": "2026-02-24T20:38:02.884Z"
+  }
+},
+{
+  "model": "app.trainclasscapacity",
+  "pk": 4,
+  "fields": {
+    "train": 6,
+    "class_type": 4,
+    "seat_count": 40,
+    "created_at": "2026-02-24T20:38:14.992Z",
+    "updated_at": "2026-02-24T20:40:25.509Z"
+  }
+},
+{
+  "model": "app.trainclasscapacity",
+  "pk": 5,
+  "fields": {
+    "train": 4,
+    "class_type": 1,
+    "seat_count": 40,
+    "created_at": "2026-02-24T20:40:41.458Z",
+    "updated_at": "2026-02-24T20:40:41.458Z"
+  }
+},
+{
+  "model": "app.trainclasscapacity",
+  "pk": 6,
+  "fields": {
+    "train": 3,
+    "class_type": 2,
+    "seat_count": 50,
+    "created_at": "2026-02-24T20:40:51.770Z",
+    "updated_at": "2026-02-24T20:40:51.771Z"
+  }
+},
+{
+  "model": "app.trainclasscapacity",
+  "pk": 7,
+  "fields": {
+    "train": 3,
+    "class_type": 3,
+    "seat_count": 40,
+    "created_at": "2026-02-24T20:41:02.195Z",
+    "updated_at": "2026-02-24T20:41:02.195Z"
+  }
+},
+{
+  "model": "app.trainclasscapacity",
+  "pk": 8,
+  "fields": {
+    "train": 3,
+    "class_type": 4,
+    "seat_count": 30,
+    "created_at": "2026-02-24T20:41:12.405Z",
+    "updated_at": "2026-02-24T20:41:12.405Z"
+  }
+},
+{
+  "model": "app.trainclasscapacity",
+  "pk": 9,
+  "fields": {
+    "train": 1,
+    "class_type": 1,
+    "seat_count": 40,
+    "created_at": "2026-02-24T20:41:23.810Z",
+    "updated_at": "2026-02-24T20:41:23.810Z"
+  }
+},
+{
+  "model": "app.trainclasscapacity",
+  "pk": 10,
+  "fields": {
+    "train": 1,
+    "class_type": 2,
+    "seat_count": 40,
+    "created_at": "2026-02-24T20:41:33.836Z",
+    "updated_at": "2026-02-24T20:41:33.836Z"
+  }
+},
+{
+  "model": "app.trainclasscapacity",
+  "pk": 11,
+  "fields": {
+    "train": 2,
+    "class_type": 3,
+    "seat_count": 50,
+    "created_at": "2026-02-24T20:41:51.000Z",
+    "updated_at": "2026-02-24T20:41:51.000Z"
+  }
+},
+{
+  "model": "app.trainclasscapacity",
+  "pk": 12,
+  "fields": {
+    "train": 2,
+    "class_type": 4,
+    "seat_count": 30,
+    "created_at": "2026-02-24T20:42:06.388Z",
+    "updated_at": "2026-02-24T20:42:06.388Z"
+  }
+},
+{
+  "model": "app.trainclasscapacity",
+  "pk": 13,
+  "fields": {
+    "train": 7,
+    "class_type": 1,
+    "seat_count": 40,
+    "created_at": "2026-02-24T20:42:27.004Z",
+    "updated_at": "2026-02-24T20:42:27.004Z"
+  }
+},
+{
+  "model": "app.trainclasscapacity",
+  "pk": 14,
+  "fields": {
+    "train": 7,
+    "class_type": 2,
+    "seat_count": 50,
+    "created_at": "2026-02-24T20:42:36.733Z",
+    "updated_at": "2026-02-24T20:42:36.733Z"
+  }
+},
+{
+  "model": "app.trainclasscapacity",
+  "pk": 15,
+  "fields": {
+    "train": 7,
+    "class_type": 3,
+    "seat_count": 30,
+    "created_at": "2026-02-24T20:42:53.356Z",
+    "updated_at": "2026-02-24T20:42:53.356Z"
+  }
+},
+{
+  "model": "app.trainclasscapacity",
+  "pk": 16,
+  "fields": {
+    "train": 7,
+    "class_type": 4,
+    "seat_count": 20,
+    "created_at": "2026-02-24T20:43:15.410Z",
+    "updated_at": "2026-02-24T20:43:15.410Z"
+  }
+},
+{
+  "model": "app.trainclasscapacity",
+  "pk": 17,
+  "fields": {
+    "train": 5,
+    "class_type": 1,
+    "seat_count": 30,
+    "created_at": "2026-02-24T20:43:27.410Z",
+    "updated_at": "2026-02-24T20:43:27.410Z"
+  }
+},
+{
+  "model": "app.trainclasscapacity",
+  "pk": 18,
+  "fields": {
+    "train": 5,
+    "class_type": 4,
+    "seat_count": 20,
+    "created_at": "2026-02-24T20:43:40.111Z",
+    "updated_at": "2026-02-24T20:43:40.111Z"
+  }
+},
+{
+  "model": "app.trainclasscapacity",
+  "pk": 19,
+  "fields": {
+    "train": 5,
+    "class_type": 3,
+    "seat_count": 40,
+    "created_at": "2026-02-24T20:43:52.603Z",
+    "updated_at": "2026-02-24T20:43:52.603Z"
+  }
+},
+{
+  "model": "app.trainclasscapacity",
+  "pk": 20,
+  "fields": {
+    "train": 5,
+    "class_type": 2,
+    "seat_count": 50,
+    "created_at": "2026-02-24T20:44:21.459Z",
+    "updated_at": "2026-02-24T20:44:21.459Z"
+  }
+},
+{
+  "model": "app.booking",
+  "pk": 3,
+  "fields": {
+    "user": [
+      "hr"
+    ],
+    "booking_date": "2026-02-25",
+    "booking_time": "00:43:37.427",
+    "status": "Accepted",
+    "train_name": "london",
+    "source": "nairobi",
+    "destination": "naivasha",
+    "departure_time": "6 p.m.",
+    "arrival_time": "11:33 p.m.",
+    "class_type": 3,
+    "total_fare": "1.00",
+    "passengers_adult": 1,
+    "passengers_child": 0,
+    "payment_code": null,
+    "payment_method": "MPesa",
+    "travel_date": "2026-02-28",
+    "travel_dt": null,
+    "selected_seats": "2",
+    "created_at": "2026-02-24T21:43:37.427Z",
+    "updated_at": "2026-02-24T21:51:14.705Z"
+  }
+},
+{
+  "model": "app.booking",
+  "pk": 6,
+  "fields": {
+    "user": [
+      "hr"
+    ],
+    "booking_date": "2026-02-25",
+    "booking_time": "13:31:38.208",
+    "status": "Accepted",
+    "train_name": "madaraka express",
+    "source": "mombasa",
+    "destination": "nairobi",
+    "departure_time": "6 p.m.",
+    "arrival_time": "midnight",
+    "class_type": 3,
+    "total_fare": "1.00",
+    "passengers_adult": 1,
+    "passengers_child": 0,
+    "payment_code": null,
+    "payment_method": "MPesa",
+    "travel_date": "2026-02-26",
+    "travel_dt": null,
+    "selected_seats": "1",
+    "created_at": "2026-02-25T10:31:38.208Z",
+    "updated_at": "2026-02-25T10:36:03.182Z"
+  }
+},
+{
+  "model": "app.booking",
+  "pk": 7,
+  "fields": {
+    "user": [
+      "hr"
+    ],
+    "booking_date": "2026-02-25",
+    "booking_time": "13:46:40.587",
+    "status": "Accepted",
+    "train_name": "london",
+    "source": "naivasha",
+    "destination": "laikipia",
+    "departure_time": "6 a.m.",
+    "arrival_time": "noon",
+    "class_type": 3,
+    "total_fare": "1.00",
+    "passengers_adult": 1,
+    "passengers_child": 0,
+    "payment_code": null,
+    "payment_method": "MPesa",
+    "travel_date": "2026-02-26",
+    "travel_dt": null,
+    "selected_seats": "1",
+    "created_at": "2026-02-25T10:46:40.587Z",
+    "updated_at": "2026-02-25T10:47:28.016Z"
+  }
+},
+{
+  "model": "app.booking",
+  "pk": 8,
+  "fields": {
+    "user": [
+      "hr"
+    ],
+    "booking_date": "2026-02-25",
+    "booking_time": "13:49:59.535",
+    "status": "Accepted",
+    "train_name": "london",
+    "source": "naivasha",
+    "destination": "laikipia",
+    "departure_time": "6 a.m.",
+    "arrival_time": "noon",
+    "class_type": 3,
+    "total_fare": "1.00",
+    "passengers_adult": 1,
+    "passengers_child": 0,
+    "payment_code": null,
+    "payment_method": "MPesa",
+    "travel_date": "2026-02-26",
+    "travel_dt": null,
+    "selected_seats": "2",
+    "created_at": "2026-02-25T10:49:59.535Z",
+    "updated_at": "2026-02-25T10:50:45.072Z"
+  }
+},
+{
+  "model": "app.booking",
+  "pk": 9,
+  "fields": {
+    "user": [
+      "hr"
+    ],
+    "booking_date": "2026-02-26",
+    "booking_time": "21:56:33.975",
+    "status": "Accepted",
+    "train_name": "london",
+    "source": "nairobi",
+    "destination": "naivasha",
+    "departure_time": "6 p.m.",
+    "arrival_time": "11:33 p.m.",
+    "class_type": 3,
+    "total_fare": "1.00",
+    "passengers_adult": 1,
+    "passengers_child": 0,
+    "payment_code": null,
+    "payment_method": "MPesa",
+    "travel_date": "2026-02-27",
+    "travel_dt": null,
+    "selected_seats": "1",
+    "created_at": "2026-02-26T18:56:33.975Z",
+    "updated_at": "2026-02-26T18:57:23.181Z"
+  }
+},
+{
+  "model": "app.payment",
+  "pk": 1,
+  "fields": {
+    "status": "Paid",
+    "booking": 3,
+    "user": [
+      "hr"
+    ],
+    "pay_amount": "1.00",
+    "pay_method": "MPesa",
+    "phone": "254115259521",
+    "trxid": "ws_CO_25022026004349614115259521",
+    "created_at": "2026-02-24T21:43:58.700Z",
+    "updated_at": "2026-02-24T21:43:58.700Z"
+  }
+},
+{
+  "model": "app.payment",
+  "pk": 2,
+  "fields": {
+    "status": "Paid",
+    "booking": 6,
+    "user": [
+      "hr"
+    ],
+    "pay_amount": "1.00",
+    "pay_method": "MPesa",
+    "phone": "254115259521",
+    "trxid": "ws_CO_25022026133158705115259521",
+    "created_at": "2026-02-25T10:36:03.165Z",
+    "updated_at": "2026-02-25T10:36:03.165Z"
+  }
+},
+{
+  "model": "app.payment",
+  "pk": 3,
+  "fields": {
+    "status": "Paid",
+    "booking": 7,
+    "user": [
+      "hr"
+    ],
+    "pay_amount": "1.00",
+    "pay_method": "MPesa",
+    "phone": "254115259521",
+    "trxid": "ws_CO_25022026134650603115259521",
+    "created_at": "2026-02-25T10:47:28.016Z",
+    "updated_at": "2026-02-25T10:47:28.016Z"
+  }
+},
+{
+  "model": "app.payment",
+  "pk": 4,
+  "fields": {
+    "status": "Paid",
+    "booking": 8,
+    "user": [
+      "hr"
+    ],
+    "pay_amount": "1.00",
+    "pay_method": "MPesa",
+    "phone": "254115259521",
+    "trxid": "ws_CO_25022026135008113115259521",
+    "created_at": "2026-02-25T10:50:45.063Z",
+    "updated_at": "2026-02-25T10:50:45.063Z"
+  }
+},
+{
+  "model": "app.payment",
+  "pk": 5,
+  "fields": {
+    "status": "Paid",
+    "booking": 9,
+    "user": [
+      "hr"
+    ],
+    "pay_amount": "1.00",
+    "pay_method": "MPesa",
+    "phone": "254115259521",
+    "trxid": "ws_CO_26022026215644877115259521",
+    "created_at": "2026-02-26T18:57:23.173Z",
+    "updated_at": "2026-02-26T18:57:23.173Z"
+  }
+},
+{
+  "model": "app.mpesatransaction",
+  "pk": 1,
+  "fields": {
+    "booking": 3,
+    "phone_number": "254115259521",
+    "amount": "1.00",
+    "checkout_request_id": "ws_CO_25022026004349614115259521",
+    "merchant_request_id": "6675-449f-a524-38ffea4c9160492",
+    "trx_id": null,
+    "result_code": "0",
+    "result_desc": "The service request is processed successfully.",
+    "created_at": "2026-02-24T21:43:49.208Z",
+    "transaction_date": "2026-02-24T21:43:49.208Z"
+  }
+},
+{
+  "model": "app.mpesatransaction",
+  "pk": 2,
+  "fields": {
+    "booking": 6,
+    "phone_number": "254115259521",
+    "amount": "1.00",
+    "checkout_request_id": "ws_CO_25022026133158705115259521",
+    "merchant_request_id": "a09d-40ff-a1fe-3732a7c58a8220700",
+    "trx_id": null,
+    "result_code": "0",
+    "result_desc": "The service request is processed successfully.",
+    "created_at": "2026-02-25T10:31:58.831Z",
+    "transaction_date": "2026-02-25T10:31:58.831Z"
+  }
+},
+{
+  "model": "app.mpesatransaction",
+  "pk": 3,
+  "fields": {
+    "booking": 7,
+    "phone_number": "254115259521",
+    "amount": "1.00",
+    "checkout_request_id": "ws_CO_25022026134650603115259521",
+    "merchant_request_id": "6675-449f-a524-38ffea4c916014511",
+    "trx_id": null,
+    "result_code": "0",
+    "result_desc": "The service request is processed successfully.",
+    "created_at": "2026-02-25T10:46:50.638Z",
+    "transaction_date": "2026-02-25T10:46:50.638Z"
+  }
+},
+{
+  "model": "app.mpesatransaction",
+  "pk": 4,
+  "fields": {
+    "booking": 8,
+    "phone_number": "254115259521",
+    "amount": "1.00",
+    "checkout_request_id": "ws_CO_25022026135008113115259521",
+    "merchant_request_id": "6675-449f-a524-38ffea4c916014607",
+    "trx_id": null,
+    "result_code": "0",
+    "result_desc": "The service request is processed successfully.",
+    "created_at": "2026-02-25T10:50:08.201Z",
+    "transaction_date": "2026-02-25T10:50:08.201Z"
+  }
+},
+{
+  "model": "app.mpesatransaction",
+  "pk": 5,
+  "fields": {
+    "booking": 9,
+    "phone_number": "254115259521",
+    "amount": "1.00",
+    "checkout_request_id": "ws_CO_26022026215644877115259521",
+    "merchant_request_id": "a260-4f92-81ff-d3b0ce0ca6a224211",
+    "trx_id": null,
+    "result_code": "0",
+    "result_desc": "The service request is processed successfully.",
+    "created_at": "2026-02-26T18:56:44.692Z",
+    "transaction_date": "2026-02-26T18:56:44.684Z"
+  }
+},
+{
+  "model": "app.seatallocation",
+  "pk": 3,
+  "fields": {
+    "train": 3,
+    "booking": 3,
+    "class_type": 3,
+    "travel_date": "2026-02-28",
+    "seat_number": 2,
+    "created_at": "2026-02-24T21:43:37.439Z"
+  }
+},
+{
+  "model": "app.seatallocation",
+  "pk": 6,
+  "fields": {
+    "train": 2,
+    "booking": 6,
+    "class_type": 3,
+    "travel_date": "2026-02-26",
+    "seat_number": 1,
+    "created_at": "2026-02-25T10:31:38.224Z"
+  }
+},
+{
+  "model": "app.seatallocation",
+  "pk": 7,
+  "fields": {
+    "train": 4,
+    "booking": 7,
+    "class_type": 3,
+    "travel_date": "2026-02-26",
+    "seat_number": 1,
+    "created_at": "2026-02-25T10:46:40.605Z"
+  }
+},
+{
+  "model": "app.seatallocation",
+  "pk": 8,
+  "fields": {
+    "train": 4,
+    "booking": 8,
+    "class_type": 3,
+    "travel_date": "2026-02-26",
+    "seat_number": 2,
+    "created_at": "2026-02-25T10:49:59.541Z"
+  }
+},
+{
+  "model": "app.seatallocation",
+  "pk": 9,
+  "fields": {
+    "train": 3,
+    "booking": 9,
+    "class_type": 3,
+    "travel_date": "2026-02-27",
+    "seat_number": 1,
+    "created_at": "2026-02-26T18:56:34.000Z"
+  }
+}
+]
