@@ -31,11 +31,14 @@
     }
     .available-table-wrap {
         border-radius: 12px;
-        overflow: hidden;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
         box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
     }
     .available-table-wrap table {
         margin-bottom: 0;
+        min-width: 1100px;
     }
     .seat-picker {
         max-height: 140px;
@@ -59,6 +62,17 @@
         margin-top: 4px;
         font-weight: 700;
         color: #9ae6b4;
+    }
+    .table-scroll-hint {
+        display: none;
+    }
+    @media (max-width: 991.98px) {
+        .table-scroll-hint {
+            display: block;
+            color: #cbd5e1;
+            font-size: 0.86rem;
+            margin-top: 8px;
+        }
     }
 </style>
 <div class="available">
@@ -203,6 +217,7 @@
                     </tbody>
                 </table>
                 </div>
+                <small class="table-scroll-hint">Swipe left/right on the table to access all columns, including the Book button.</small>
             </div>
             {% endif %}
         </div>
