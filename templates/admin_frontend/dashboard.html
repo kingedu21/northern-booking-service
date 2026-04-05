@@ -36,6 +36,34 @@
         gap: 16px;
         margin-bottom: 24px;
     }
+    .filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin-top: 10px;
+    }
+    .filters .preset {
+        background: rgba(148, 163, 184, 0.2);
+        color: var(--dash-white);
+    }
+    .filters input {
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        border-radius: 8px;
+        padding: 6px 10px;
+        color: var(--dash-white);
+    }
+    .filters button, .filters a {
+        background: var(--dash-accent);
+        color: #0b1120;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+    }
     .admin-title h1 {
         font-size: 32px;
         margin: 0;
@@ -123,6 +151,20 @@
             <div>
                 <h1>Operations Command Center</h1>
                 <p>Live metrics for bookings, payments, and capacity.</p>
+                <form method="get" class="filters">
+                    <label>Start</label>
+                    <input type="date" name="start" value="{{ start_date }}">
+                    <label>End</label>
+                    <input type="date" name="end" value="{{ end_date }}">
+                    <button type="submit">Apply</button>
+                    <button type="button" class="preset" data-range="7">Last 7 Days</button>
+                    <button type="button" class="preset" data-range="month">This Month</button>
+                    <button type="button" class="preset" data-range="prev-month">Last Month</button>
+                    <a href="{% url 'frontend_admin_export' %}?type=bookings{% if start_date %}&start={{ start_date }}{% endif %}{% if end_date %}&end={{ end_date }}{% endif %}">Export Bookings CSV</a>
+                    <a href="{% url 'frontend_admin_export' %}?type=payments{% if start_date %}&start={{ start_date }}{% endif %}{% if end_date %}&end={{ end_date }}{% endif %}">Export Payments CSV</a>
+                    <a href="{% url 'frontend_admin_export' %}?type=routes{% if start_date %}&start={{ start_date }}{% endif %}{% if end_date %}&end={{ end_date }}{% endif %}">Export Routes CSV</a>
+                    <a href="{% url 'frontend_admin_export' %}?type=seat-utilization">Export Seat Utilization CSV</a>
+                </form>
             </div>
             <span class="badge-pill">Admin Only</span>
         </div>
@@ -186,6 +228,32 @@
                 <canvas id="seatUtilClass"></canvas>
             </div>
             <div class="panel">
+                <h3>Revenue by Payment Method</h3>
+                <canvas id="methodRevenue"></canvas>
+                <table class="table-lite" style="margin-top:12px;">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Bookings</th>
+                            <th>Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for row in payment_method_split %}
+                        <tr>
+                            <td>{{ row.method }}</td>
+                            <td>{{ row.bookings }}</td>
+                            <td>{{ row.total_revenue }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="3">No data yet.</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="panel">
                 <h3>Top Revenue Routes</h3>
                 <canvas id="routeRevenue"></canvas>
             </div>
@@ -237,6 +305,8 @@
     const classValues = {{ class_values_json|safe }};
     const routeLabels = {{ route_labels_json|safe }};
     const routeValues = {{ route_values_json|safe }};
+    const methodLabels = {{ method_labels_json|safe }};
+    const methodValues = {{ method_values_json|safe }};
 
     if (barLabels.length) {
         new Chart(document.getElementById('revenueBar'), {
@@ -334,6 +404,20 @@
         });
     }
 
+    if (methodLabels.length) {
+        new Chart(document.getElementById('methodRevenue'), {
+            type: 'doughnut',
+            data: {
+                labels: methodLabels,
+                datasets: [{
+                    data: methodValues,
+                    backgroundColor: ['#f97316', '#38bdf8', '#22c55e', '#a855f7', '#facc15']
+                }]
+            },
+            options: { responsive: true }
+        });
+    }
+
     if (routeLabels.length) {
         new Chart(document.getElementById('routeRevenue'), {
             type: 'bar',
@@ -352,5 +436,32 @@
             }
         });
     }
+
+    const presetButtons = document.querySelectorAll('.filters .preset');
+    presetButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const range = btn.getAttribute('data-range');
+            const startInput = document.querySelector('input[name="start"]');
+            const endInput = document.querySelector('input[name="end"]');
+            const today = new Date();
+            const toIso = (d) => d.toISOString().split('T')[0];
+            if (range === '7') {
+                const start = new Date();
+                start.setDate(today.getDate() - 6);
+                startInput.value = toIso(start);
+                endInput.value = toIso(today);
+            } else if (range === 'month') {
+                const start = new Date(today.getFullYear(), today.getMonth(), 1);
+                startInput.value = toIso(start);
+                endInput.value = toIso(today);
+            } else if (range === 'prev-month') {
+                const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                const end = new Date(today.getFullYear(), today.getMonth(), 0);
+                startInput.value = toIso(start);
+                endInput.value = toIso(end);
+            }
+            btn.closest('form').submit();
+        });
+    });
 </script>
 {% endblock content %}

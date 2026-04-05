@@ -6,7 +6,7 @@ from .views import (
     process_payment, stk_push, mpesa_callback, mpesa_status, seat_availability,
     booking_assistant, download_ticket_pdf,
 )
-from .frontend_dashboard import frontend_admin_dashboard
+from .frontend_dashboard import frontend_admin_dashboard, frontend_admin_export
 
 urlpatterns = [
     path('', Home.as_view(), name='home'),
@@ -32,4 +32,5 @@ urlpatterns = [
     path('stk_push/', stk_push, name='stk_push'),
     path('mpesa_callback/', mpesa_callback, name='mpesa_callback'),
     path('admin-dashboard/', frontend_admin_dashboard, name='frontend_admin_dashboard'),
+    path('admin-dashboard/export/', frontend_admin_export, name='frontend_admin_export'),
 ]

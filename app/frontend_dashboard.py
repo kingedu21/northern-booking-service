@@ -6,7 +6,9 @@ from django.db.models import Count, F, Sum
 from django.db.models.fields import DateTimeField
 from django.db.models.functions import TruncDate, TruncMonth
 from django.shortcuts import render
+from django.http import HttpResponse
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 
 from .models import Booking, Payment, Ticket, Train, SeatAllocation, TrainClassCapacity, ClassType
 
@@ -48,6 +50,17 @@ def _revenue_total(completed_qs):
     if "total_fare" in _booking_field_names():
         return completed_qs.aggregate(total=Sum("total_fare")).get("total") or Decimal("0")
     return Decimal("0")
+
+
+def _apply_date_filter(qs, field_name, start_date, end_date):
+    if not field_name or (not start_date and not end_date):
+        return qs
+    filters = {}
+    if start_date:
+        filters[f"{field_name}__date__gte"] = start_date if isinstance(start_date, timezone.datetime) else start_date
+    if end_date:
+        filters[f"{field_name}__date__lte"] = end_date if isinstance(end_date, timezone.datetime) else end_date
+    return qs.filter(**filters)
 
 
 def _seat_utilization_snapshot():
@@ -126,9 +139,27 @@ def _seat_utilization_by_class():
     return rows[:8]
 
 
+def _parse_date_range(request):
+    start_raw = (request.GET.get("start") or "").strip()
+    end_raw = (request.GET.get("end") or "").strip()
+    start_date = parse_date(start_raw) if start_raw else None
+    end_date = parse_date(end_raw) if end_raw else None
+    return start_raw, end_raw, start_date, end_date
+
+
+def _export_csv(rows, headers, filename):
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    response.write(",".join(headers) + "\n")
+    for row in rows:
+        response.write(",".join(str(row.get(col, "") or "") for col in headers) + "\n")
+    return response
+
+
 @login_required
 @user_passes_test(_is_admin)
 def frontend_admin_dashboard(request):
+    start_raw, end_raw, start_date, end_date = _parse_date_range(request)
     completed = _completed_bookings()
     total_bookings = completed.count()
     total_revenue = _revenue_total(completed)
@@ -141,6 +172,11 @@ def frontend_admin_dashboard(request):
     today = timezone.localdate()
     booking_date_field = _booking_date_field()
     booking_date_is_datetime = _is_datetime_field(booking_date_field)
+
+    if booking_date_field and (start_date or end_date):
+        completed = _apply_date_filter(completed, booking_date_field, start_date, end_date)
+        total_bookings = completed.count()
+        total_revenue = _revenue_total(completed)
 
     if booking_date_field:
         today_lookup = (
@@ -163,6 +199,20 @@ def frontend_admin_dashboard(request):
     )
     revenue_per_train = list(revenue_per_train)
 
+    payment_method_split = (
+        completed.values("payment_method")
+        .annotate(total_revenue=Sum("total_fare"), bookings=Count("id"))
+        .order_by("-total_revenue")
+    )
+    payment_method_split = [
+        {
+            "method": row.get("payment_method") or "Unknown",
+            "total_revenue": row.get("total_revenue") or 0,
+            "bookings": row.get("bookings") or 0,
+        }
+        for row in payment_method_split
+    ]
+
     if booking_date_field:
         monthly_revenue = (
             completed.annotate(month=TruncMonth(booking_date_field))
@@ -180,9 +230,14 @@ def frontend_admin_dashboard(request):
         monthly_revenue = []
         daily_bookings = []
 
+    payments_qs = Payment.objects.filter(status__iexact="Paid")
+    if start_date or end_date:
+        payments_qs = payments_qs.filter(
+            created_at__date__gte=start_date if start_date else timezone.datetime.min.date(),
+            created_at__date__lte=end_date if end_date else timezone.datetime.max.date(),
+        )
     payments_by_day = (
-        Payment.objects.filter(status__iexact="Paid")
-        .annotate(day=TruncDate("created_at"))
+        payments_qs.annotate(day=TruncDate("created_at"))
         .values("day")
         .annotate(count=Count("id"))
         .order_by("day")
@@ -214,6 +269,8 @@ def frontend_admin_dashboard(request):
         "refunded_payments": refunded_payments,
         "total_tickets": total_tickets,
         "seat_utilization_percent": round(seat_utilization * 100, 1),
+        "start_date": start_raw,
+        "end_date": end_raw,
         "revenue_per_train": revenue_per_train,
         "monthly_revenue": list(monthly_revenue),
         "daily_bookings": list(daily_bookings),
@@ -221,6 +278,7 @@ def frontend_admin_dashboard(request):
         "seat_utilization_by_train": seat_utilization_by_train,
         "seat_utilization_by_class": seat_utilization_by_class,
         "route_revenue": route_revenue,
+        "payment_method_split": payment_method_split,
         "recent_bookings": recent_bookings,
         "bar_labels_json": json.dumps([row.get("train_label") or "Unknown" for row in revenue_per_train]),
         "bar_values_json": json.dumps([float(row.get("total_revenue") or 0) for row in revenue_per_train]),
@@ -248,5 +306,100 @@ def frontend_admin_dashboard(request):
             for row in route_revenue
         ]),
         "route_values_json": json.dumps([float(row.get("total_revenue") or 0) for row in route_revenue]),
+        "method_labels_json": json.dumps([row["method"] for row in payment_method_split]),
+        "method_values_json": json.dumps([float(row["total_revenue"] or 0) for row in payment_method_split]),
     }
     return render(request, "admin_frontend/dashboard.html", context)
+
+
+@login_required
+@user_passes_test(_is_admin)
+def frontend_admin_export(request):
+    start_raw, end_raw, start_date, end_date = _parse_date_range(request)
+    export_type = (request.GET.get("type") or "bookings").strip().lower()
+
+    if export_type == "payments":
+        qs = Payment.objects.all()
+        if start_date or end_date:
+            qs = qs.filter(
+                created_at__date__gte=start_date if start_date else timezone.datetime.min.date(),
+                created_at__date__lte=end_date if end_date else timezone.datetime.max.date(),
+            )
+        rows = [
+            {
+                "id": p.id,
+                "booking_id": p.booking_id,
+                "pay_amount": p.pay_amount,
+                "pay_method": p.pay_method,
+                "status": p.status,
+                "created_at": p.created_at,
+            }
+            for p in qs.order_by("-id")[:1000]
+        ]
+        return _export_csv(rows, ["id", "booking_id", "pay_amount", "pay_method", "status", "created_at"], "payments.csv")
+
+    if export_type == "routes":
+        completed = _completed_bookings()
+        booking_date_field = _booking_date_field()
+        if booking_date_field and (start_date or end_date):
+            completed = _apply_date_filter(completed, booking_date_field, start_date, end_date)
+        route_rows = (
+            completed.values("source", "destination")
+            .annotate(total_revenue=Sum("total_fare"), bookings=Count("id"))
+            .order_by("-total_revenue")
+        )
+        rows = [
+            {
+                "source": row.get("source") or "",
+                "destination": row.get("destination") or "",
+                "total_revenue": row.get("total_revenue") or 0,
+                "bookings": row.get("bookings") or 0,
+            }
+            for row in route_rows
+        ]
+        return _export_csv(rows, ["source", "destination", "total_revenue", "bookings"], "routes.csv")
+
+    if export_type == "seat-utilization":
+        seat_utilization_by_class = _seat_utilization_by_class()
+        seat_utilization, seat_utilization_by_train = _seat_utilization_snapshot()
+        rows = []
+        for row in seat_utilization_by_train:
+            rows.append(
+                {
+                    "group": "train",
+                    "name": row["train"],
+                    "utilization_percent": round(row["utilization"] * 100, 1),
+                }
+            )
+        for row in seat_utilization_by_class:
+            rows.append(
+                {
+                    "group": "class",
+                    "name": row["class_name"],
+                    "utilization_percent": round(row["utilization"] * 100, 1),
+                }
+            )
+        return _export_csv(rows, ["group", "name", "utilization_percent"], "seat_utilization.csv")
+
+    completed = _completed_bookings()
+    booking_date_field = _booking_date_field()
+    if booking_date_field and (start_date or end_date):
+        completed = _apply_date_filter(completed, booking_date_field, start_date, end_date)
+    rows = [
+        {
+            "id": b.id,
+            "user": b.user.username if b.user else "",
+            "train_name": b.train_name,
+            "source": b.source,
+            "destination": b.destination,
+            "status": b.status,
+            "total_fare": b.total_fare,
+            "created_at": b.created_at,
+        }
+        for b in completed.order_by("-id")[:1000]
+    ]
+    return _export_csv(
+        rows,
+        ["id", "user", "train_name", "source", "destination", "status", "total_fare", "created_at"],
+        "bookings.csv",
+    )
