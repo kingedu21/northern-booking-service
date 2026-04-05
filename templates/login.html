@@ -33,6 +33,11 @@
                 {% csrf_token %}
                 <input type="text" id="username" class="fadeIn second" name="username" placeholder="enter username"  autocomplete="off">
                 <input type="password" id="password" class="fadeIn third" name="password" placeholder="enter password"  autocomplete="off">
+                <div class="fadeIn third" style="text-align:left; padding: 0 10px 8px;">
+                    <label style="font-size: 0.9rem;">
+                        <input type="checkbox" id="toggleLoginPassword"> Show password
+                    </label>
+                </div>
                 <input type="submit" class="fadeIn fourth" value="Log In">
             </form>
 <p>
@@ -47,5 +52,15 @@
     </div>
 
     <!-- login end -->
+
+<script>
+    const loginToggle = document.getElementById('toggleLoginPassword');
+    const loginPassword = document.getElementById('password');
+    if (loginToggle && loginPassword) {
+        loginToggle.addEventListener('change', function () {
+            loginPassword.type = this.checked ? 'text' : 'password';
+        });
+    }
+</script>
 
 {% endblock content %}

@@ -38,6 +38,11 @@
                 <input type="text" id="phone" class="fadeIn second" name="phone" placeholder="enter phone number"  autocomplete="off">
                 <input type="password" id="password1" class="fadeIn third" name="password1" placeholder="enter password"  autocomplete="off">
                 <input type="password" id="password2" class="fadeIn third" name="password2" placeholder="confirm password"  autocomplete="off">
+                <div class="fadeIn third" style="text-align:left; padding: 0 10px 8px;">
+                    <label style="font-size: 0.9rem;">
+                        <input type="checkbox" id="toggleSignupPassword"> Show password
+                    </label>
+                </div>
                 <br/>
                 <input type="submit" class="fadeIn fourth" value="Sign Up">
             </form>
@@ -51,5 +56,18 @@
     </div>
 
     <!-- signup end -->
+
+<script>
+    const signupToggle = document.getElementById('toggleSignupPassword');
+    const signupPassword1 = document.getElementById('password1');
+    const signupPassword2 = document.getElementById('password2');
+    if (signupToggle && signupPassword1 && signupPassword2) {
+        signupToggle.addEventListener('change', function () {
+            const nextType = this.checked ? 'text' : 'password';
+            signupPassword1.type = nextType;
+            signupPassword2.type = nextType;
+        });
+    }
+</script>
 
 {% endblock content %}
