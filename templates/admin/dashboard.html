@@ -1,0 +1,198 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+  .admin-dashboard {
+    margin: 0 0 24px;
+  }
+  .admin-dashboard .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .admin-dashboard .card {
+    background: #fff;
+    border: 1px solid #e1e6ea;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .admin-dashboard .card h3 {
+    margin: 0 0 6px;
+    font-size: 14px;
+    color: #5b6b79;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .admin-dashboard .card .value {
+    font-size: 22px;
+    font-weight: 700;
+    color: #111827;
+  }
+  .admin-dashboard .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 18px;
+  }
+  .admin-dashboard .panel {
+    background: #fff;
+    border: 1px solid #e1e6ea;
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .admin-dashboard .panel h4 {
+    margin: 0 0 12px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+  .admin-dashboard .empty-state {
+    color: #6b7280;
+    font-size: 13px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-dashboard">
+  <h1>{{ title }}</h1>
+
+  <div class="cards">
+    <div class="card">
+      <h3>Total Revenue</h3>
+      <div class="value">{{ total_revenue }}</div>
+    </div>
+    <div class="card">
+      <h3>Today Revenue</h3>
+      <div class="value">{{ today_revenue }}</div>
+    </div>
+    <div class="card">
+      <h3>Total Bookings</h3>
+      <div class="value">{{ total_bookings }}</div>
+    </div>
+    <div class="card">
+      <h3>Total Trains</h3>
+      <div class="value">{{ total_trains }}</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h4>Revenue by Train</h4>
+      <canvas id="revenueBar"></canvas>
+      {% if not revenue_per_train %}
+        <p class="empty-state">No completed bookings yet.</p>
+      {% endif %}
+    </div>
+    <div class="panel">
+      <h4>Monthly Revenue</h4>
+      <canvas id="monthlyLine"></canvas>
+      {% if not monthly_revenue %}
+        <p class="empty-state">No monthly revenue data yet.</p>
+      {% endif %}
+    </div>
+    <div class="panel">
+      <h4>Revenue Share</h4>
+      <canvas id="revenuePie"></canvas>
+      {% if not revenue_per_train %}
+        <p class="empty-state">No revenue distribution data yet.</p>
+      {% endif %}
+    </div>
+    <div class="panel">
+      <h4>Daily Bookings</h4>
+      <canvas id="dailyBookings"></canvas>
+      {% if not daily_bookings %}
+        <p class="empty-state">No daily booking data yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  const barLabels = {{ bar_labels_json|safe }};
+  const barValues = {{ bar_values_json|safe }};
+  const lineLabels = {{ line_labels_json|safe }};
+  const lineValues = {{ line_values_json|safe }};
+  const pieLabels = {{ pie_labels_json|safe }};
+  const pieValues = {{ pie_values_json|safe }};
+  const dailyLabels = {{ daily_labels_json|safe }};
+  const dailyValues = {{ daily_values_json|safe }};
+
+  const hasBarData = barLabels.length && barValues.length;
+  const hasLineData = lineLabels.length && lineValues.length;
+  const hasPieData = pieLabels.length && pieValues.length;
+  const hasDailyData = dailyLabels.length && dailyValues.length;
+
+  if (hasBarData) {
+    new Chart(document.getElementById('revenueBar'), {
+      type: 'bar',
+      data: {
+        labels: barLabels,
+        datasets: [{
+          label: 'Revenue',
+          data: barValues,
+          backgroundColor: '#2563eb'
+        }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+  }
+
+  if (hasLineData) {
+    new Chart(document.getElementById('monthlyLine'), {
+      type: 'line',
+      data: {
+        labels: lineLabels,
+        datasets: [{
+          label: 'Revenue',
+          data: lineValues,
+          borderColor: '#0f766e',
+          backgroundColor: 'rgba(15, 118, 110, 0.15)',
+          tension: 0.2,
+          fill: true
+        }]
+      },
+      options: { responsive: true }
+    });
+  }
+
+  if (hasPieData) {
+    new Chart(document.getElementById('revenuePie'), {
+      type: 'pie',
+      data: {
+        labels: pieLabels,
+        datasets: [{
+          data: pieValues,
+          backgroundColor: ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6']
+        }]
+      },
+      options: { responsive: true }
+    });
+  }
+
+  if (hasDailyData) {
+    new Chart(document.getElementById('dailyBookings'), {
+      type: 'line',
+      data: {
+        labels: dailyLabels,
+        datasets: [{
+          label: 'Bookings',
+          data: dailyValues,
+          borderColor: '#7c3aed',
+          backgroundColor: 'rgba(124, 58, 237, 0.12)',
+          tension: 0.2,
+          fill: true
+        }]
+      },
+      options: { responsive: true }
+    });
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+  .ai-insights {
+    max-width: 960px;
+  }
+  .ai-insights .summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin: 16px 0 24px;
+  }
+  .ai-insights .summary-card {
+    background: #fff;
+    border: 1px solid #e1e6ea;
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .ai-insights .summary-card h4 {
+    margin: 0 0 6px;
+    font-size: 12px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .ai-insights .summary-card .value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+  }
+  .ai-insights .panel {
+    background: #fff;
+    border: 1px solid #e1e6ea;
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .ai-insights .panel h3 {
+    margin: 0 0 10px;
+  }
+  .ai-insights .insight-text {
+    white-space: pre-wrap;
+    line-height: 1.5;
+    color: #1f2937;
+  }
+  .ai-insights .error {
+    color: #b91c1c;
+    font-weight: 600;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ai-insights">
+  <h1>{{ title }}</h1>
+
+  <div class="summary">
+    <div class="summary-card">
+      <h4>Total Revenue</h4>
+      <div class="value">{{ total_revenue }}</div>
+    </div>
+    <div class="summary-card">
+      <h4>Today Revenue</h4>
+      <div class="value">{{ today_revenue }}</div>
+    </div>
+    <div class="summary-card">
+      <h4>Total Bookings</h4>
+      <div class="value">{{ total_bookings }}</div>
+    </div>
+    <div class="summary-card">
+      <h4>Total Trains</h4>
+      <div class="value">{{ total_trains }}</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>AI Insights</h3>
+    {% if ai_error %}
+      <p class="error">{{ ai_error }}</p>
+    {% endif %}
+    {% if ai_insights %}
+      <div class="insight-text">{{ ai_insights }}</div>
+    {% else %}
+      <p>No AI insights available yet.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

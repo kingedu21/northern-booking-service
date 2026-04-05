@@ -1,0 +1,356 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Admin Dashboard{% endblock title %}
+
+{% block content %}
+<style>
+    :root {
+        --dash-bg: #0f172a;
+        --dash-card: rgba(15, 23, 42, 0.86);
+        --dash-accent: #f97316;
+        --dash-accent-2: #38bdf8;
+        --dash-muted: #cbd5f5;
+        --dash-white: #f8fafc;
+        --dash-shadow: 0 24px 50px rgba(2, 6, 23, 0.35);
+    }
+    body {
+        font-family: "Space Grotesk", "Segoe UI", sans-serif;
+    }
+    .admin-hero {
+        background: radial-gradient(circle at top left, rgba(248, 113, 16, 0.25), transparent 55%),
+                    radial-gradient(circle at top right, rgba(56, 189, 248, 0.2), transparent 55%),
+                    var(--dash-bg);
+        padding: 48px 0 64px;
+        color: var(--dash-white);
+    }
+    .admin-shell {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+    .admin-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    .admin-title h1 {
+        font-size: 32px;
+        margin: 0;
+    }
+    .admin-title p {
+        margin: 6px 0 0;
+        color: var(--dash-muted);
+    }
+    .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        margin-bottom: 28px;
+    }
+    .metric-card {
+        background: var(--dash-card);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: var(--dash-shadow);
+    }
+    .metric-card h4 {
+        margin: 0 0 8px;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--dash-muted);
+    }
+    .metric-card .value {
+        font-size: 26px;
+        font-weight: 700;
+    }
+    .metric-card .sub {
+        margin-top: 6px;
+        color: var(--dash-muted);
+        font-size: 13px;
+    }
+    .panel-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 18px;
+    }
+    .panel {
+        background: rgba(15, 23, 42, 0.92);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 18px;
+        padding: 18px;
+        box-shadow: var(--dash-shadow);
+        color: var(--dash-white);
+    }
+    .panel h3 {
+        font-size: 18px;
+        margin-bottom: 16px;
+    }
+    .table-lite {
+        width: 100%;
+        border-collapse: collapse;
+        color: var(--dash-white);
+        font-size: 13px;
+    }
+    .table-lite th, .table-lite td {
+        padding: 10px 8px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    }
+    .badge-pill {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        background: rgba(56, 189, 248, 0.15);
+        color: var(--dash-accent-2);
+    }
+    .footer-note {
+        margin-top: 20px;
+        color: var(--dash-muted);
+        font-size: 12px;
+    }
+</style>
+
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+
+<section class="admin-hero">
+    <div class="admin-shell">
+        <div class="admin-title">
+            <div>
+                <h1>Operations Command Center</h1>
+                <p>Live metrics for bookings, payments, and capacity.</p>
+            </div>
+            <span class="badge-pill">Admin Only</span>
+        </div>
+
+        <div class="metric-grid">
+            <div class="metric-card">
+                <h4>Total Revenue</h4>
+                <div class="value">{{ total_revenue }}</div>
+                <div class="sub">Today: {{ today_revenue }}</div>
+            </div>
+            <div class="metric-card">
+                <h4>Paid Payments</h4>
+                <div class="value">{{ total_paid_payments }}</div>
+                <div class="sub">Confirmed transactions</div>
+            </div>
+            <div class="metric-card">
+                <h4>Failed Payments</h4>
+                <div class="value">{{ failed_payments }}</div>
+                <div class="sub">Non-paid attempts</div>
+            </div>
+            <div class="metric-card">
+                <h4>Refunded Payments</h4>
+                <div class="value">{{ refunded_payments }}</div>
+                <div class="sub">If tracked by status</div>
+            </div>
+            <div class="metric-card">
+                <h4>Tickets Sold</h4>
+                <div class="value">{{ total_tickets }}</div>
+                <div class="sub">All issued tickets</div>
+            </div>
+            <div class="metric-card">
+                <h4>Seat Utilization</h4>
+                <div class="value">{{ seat_utilization_percent }}%</div>
+                <div class="sub">Avg across seat allocations</div>
+            </div>
+        </div>
+
+        <div class="panel-grid">
+            <div class="panel">
+                <h3>Revenue by Train</h3>
+                <canvas id="revenueBar"></canvas>
+            </div>
+            <div class="panel">
+                <h3>Monthly Revenue</h3>
+                <canvas id="monthlyLine"></canvas>
+            </div>
+            <div class="panel">
+                <h3>Daily Bookings</h3>
+                <canvas id="dailyBookings"></canvas>
+            </div>
+            <div class="panel">
+                <h3>Payments (Last 14 Days)</h3>
+                <canvas id="paymentsLine"></canvas>
+            </div>
+            <div class="panel">
+                <h3>Seat Utilization by Train</h3>
+                <canvas id="seatUtilBar"></canvas>
+            </div>
+            <div class="panel">
+                <h3>Seat Utilization by Class</h3>
+                <canvas id="seatUtilClass"></canvas>
+            </div>
+            <div class="panel">
+                <h3>Top Revenue Routes</h3>
+                <canvas id="routeRevenue"></canvas>
+            </div>
+            <div class="panel">
+                <h3>Recent Bookings</h3>
+                <table class="table-lite">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>User</th>
+                            <th>Status</th>
+                            <th>Total Fare</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for booking in recent_bookings %}
+                        <tr>
+                            <td>#{{ booking.id }}</td>
+                            <td>{{ booking.user.username }}</td>
+                            <td>{{ booking.status }}</td>
+                            <td>{{ booking.total_fare }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4">No recent bookings.</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                <div class="footer-note">Only staff users can access this page.</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    const barLabels = {{ bar_labels_json|safe }};
+    const barValues = {{ bar_values_json|safe }};
+    const lineLabels = {{ line_labels_json|safe }};
+    const lineValues = {{ line_values_json|safe }};
+    const dailyLabels = {{ daily_labels_json|safe }};
+    const dailyValues = {{ daily_values_json|safe }};
+    const paymentLabels = {{ payment_labels_json|safe }};
+    const paymentValues = {{ payment_values_json|safe }};
+    const seatLabels = {{ seat_labels_json|safe }};
+    const seatValues = {{ seat_values_json|safe }};
+    const classLabels = {{ class_labels_json|safe }};
+    const classValues = {{ class_values_json|safe }};
+    const routeLabels = {{ route_labels_json|safe }};
+    const routeValues = {{ route_values_json|safe }};
+
+    if (barLabels.length) {
+        new Chart(document.getElementById('revenueBar'), {
+            type: 'bar',
+            data: {
+                labels: barLabels,
+                datasets: [{
+                    label: 'Revenue',
+                    data: barValues,
+                    backgroundColor: '#f97316'
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+    }
+
+    if (lineLabels.length) {
+        new Chart(document.getElementById('monthlyLine'), {
+            type: 'line',
+            data: {
+                labels: lineLabels,
+                datasets: [{
+                    label: 'Revenue',
+                    data: lineValues,
+                    borderColor: '#38bdf8',
+                    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: { responsive: true }
+        });
+    }
+
+    if (dailyLabels.length) {
+        new Chart(document.getElementById('dailyBookings'), {
+            type: 'line',
+            data: {
+                labels: dailyLabels,
+                datasets: [{
+                    label: 'Bookings',
+                    data: dailyValues,
+                    borderColor: '#a855f7',
+                    backgroundColor: 'rgba(168, 85, 247, 0.15)',
+                    tension: 0.25,
+                    fill: true
+                }]
+            },
+            options: { responsive: true }
+        });
+    }
+
+    if (paymentLabels.length) {
+        new Chart(document.getElementById('paymentsLine'), {
+            type: 'bar',
+            data: {
+                labels: paymentLabels,
+                datasets: [{
+                    label: 'Payments',
+                    data: paymentValues,
+                    backgroundColor: '#22c55e'
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+    }
+
+    if (seatLabels.length) {
+        new Chart(document.getElementById('seatUtilBar'), {
+            type: 'bar',
+            data: {
+                labels: seatLabels,
+                datasets: [{
+                    label: 'Utilization %',
+                    data: seatValues,
+                    backgroundColor: '#facc15'
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+    }
+
+    if (classLabels.length) {
+        new Chart(document.getElementById('seatUtilClass'), {
+            type: 'bar',
+            data: {
+                labels: classLabels,
+                datasets: [{
+                    label: 'Utilization %',
+                    data: classValues,
+                    backgroundColor: '#fb7185'
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+    }
+
+    if (routeLabels.length) {
+        new Chart(document.getElementById('routeRevenue'), {
+            type: 'bar',
+            data: {
+                labels: routeLabels,
+                datasets: [{
+                    label: 'Revenue',
+                    data: routeValues,
+                    backgroundColor: '#38bdf8'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                indexAxis: 'y'
+            }
+        });
+    }
+</script>
+{% endblock content %}

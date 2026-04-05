@@ -27,7 +27,7 @@ def _completed_bookings():
 
     # Fallback for projects that use a different status name in Booking.
     if 'status' in field_names:
-        return Booking.objects.filter(status='Completed')
+        return Booking.objects.filter(status__in=['Accepted', 'Completed', 'Paid'])
 
     return Booking.objects.none()
 

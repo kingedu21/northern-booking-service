@@ -64,9 +64,10 @@
                     Welcome, {{user.username}}
                 </a>
 
-                {% if user.is_superuser %}
+                {% if user.is_staff or user.is_superuser %}
                 <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                     <a class="dropdown-item" href="{% url 'admin:index' %}">Admin Panel</a>
+                    <a class="dropdown-item" href="{% url 'frontend_admin_dashboard' %}">Admin Dashboard</a>
                 
                     <a class="dropdown-item" href="{% url 'profile' %}">Profile</a>
                     <a class="dropdown-item" href="{% url 'booking_history' %}">Booking History</a>
