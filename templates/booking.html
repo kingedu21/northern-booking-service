@@ -243,18 +243,29 @@ function handlePayment() {
         .then(response => response.json())
         .then(data => {
             if (data.status === "success") {
+                if (data.already_paid) {
+                    payBtn.textContent = "Confirmed. Redirecting...";
+                    Swal.fire('Success', data.message || 'Booking is already paid.', 'success');
+                    window.location.href = `/tickets/${bookingId}/?print=true`;
+                    return;
+                }
+
                 Swal.fire('Success', 'STK Push sent. Complete on phone. We will confirm automatically.', 'success');
+                payBtn.textContent = "Waiting for Confirmation...";
+                pollMpesaStatus(bookingId);
+            } else if (data.status === "pending") {
+                Swal.fire('Info', data.message || 'A payment request is already pending. We will keep checking automatically.', 'info');
                 payBtn.textContent = "Waiting for Confirmation...";
                 pollMpesaStatus(bookingId);
             } else {
                 payBtn.disabled = false;
-                payBtn.textContent = "Pay Now";
+                payBtn.textContent = "Pay with MPesa";
                 Swal.fire('Error', data.message || 'Failed to initiate STK Push.', 'error');
             }
         })
         .catch(error => {
             payBtn.disabled = false;
-            payBtn.textContent = "Pay Now";
+            payBtn.textContent = "Pay with MPesa";
             console.error("STK Push Error:", error);
             Swal.fire('Error', 'Error initiating STK Push', 'error');
         });
@@ -352,7 +363,7 @@ function pollMpesaStatus(bookingId) {
             if (data.status === "expired") {
                 stopPolling();
                 payBtn.disabled = false;
-                payBtn.textContent = "Pay Now";
+                payBtn.textContent = "Pay with MPesa";
                 Swal.fire(
                     'Callback Timeout',
                     data.message || 'No callback received. Please retry payment.',
@@ -364,7 +375,7 @@ function pollMpesaStatus(bookingId) {
             if (data.status === "failed") {
                 stopPolling();
                 payBtn.disabled = false;
-                payBtn.textContent = "Pay Now";
+                payBtn.textContent = "Pay with MPesa";
                 Swal.fire('Error', data.message || 'Payment failed.', 'error');
                 return;
             }
@@ -378,7 +389,7 @@ function pollMpesaStatus(bookingId) {
             if (attempts >= maxAttempts) {
                 stopPolling();
                 payBtn.disabled = false;
-                payBtn.textContent = "Pay Now";
+                payBtn.textContent = "Pay with MPesa";
                 Swal.fire('Info', 'Still waiting for callback. You can retry in a few seconds.', 'info');
                 return;
             }
@@ -388,7 +399,7 @@ function pollMpesaStatus(bookingId) {
         .catch(error => {
             stopPolling();
             payBtn.disabled = false;
-            payBtn.textContent = "Pay Now";
+            payBtn.textContent = "Pay with MPesa";
             console.error(error);
             Swal.fire('Error', 'Could not check payment status.', 'error');
         });
